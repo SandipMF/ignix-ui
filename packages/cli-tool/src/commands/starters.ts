@@ -27,6 +27,17 @@ import {
   scaffoldConfigPackage,
   scaffoldNextApp,
 } from '../services/starter-template/MonorepoStarter';
+import {
+  createUniversalPackageJson,
+  createUniversalTsconfig,
+  createUniversalTailwindConfig,
+  createUniversalPostCSSConfig,
+  createUniversalEslintConfig,
+  createUniversalSrcStructure,
+  createUniversalIgnixConfig,
+  createUniversalGitignore,
+  createUniversalReadme,
+} from '../services/starter-template/FrameworkAgnosticStarter';
 
 const execa = async (...args: any[]): Promise<any> => {
   const { execa: execaImport } = await import('execa');
@@ -145,6 +156,41 @@ export const startersCommandNextjsApp = new Command()
       logger.info(`3. Add components: ${chalk.cyan('npx ignix add <component-name>')}`);
     } catch (e) {
       spinner.fail('Failed to scaffold Next.js app');
+      if (e instanceof Error) logger.error(e.message);
+      process.exit(1);
+    }
+  });
+
+export const startersCommandUniversal = new Command()
+  .name('universal-starters')
+  .description(chalk.hex('#33A06F')('Starter generators for framework-agnostic apps.'))
+  .command('universal-app')
+  .description('Scaffold a framework-agnostic TypeScript + Tailwind + Ignix UI starter')
+  .action(async () => {
+    const spinner = ora('Scaffolding framework-agnostic starter...').start();
+    try {
+      const root = process.cwd();
+
+      await validateEmptyDirectory(root);
+      await createUniversalPackageJson(root);
+      await createUniversalTsconfig(root);
+      await createUniversalTailwindConfig(root);
+      await createUniversalPostCSSConfig(root);
+      await createUniversalEslintConfig(root);
+      await createUniversalSrcStructure(root);
+      await createUniversalIgnixConfig(root);
+      await createUniversalGitignore(root);
+      await createUniversalReadme(root);
+
+      spinner.succeed(
+        chalk.green('Framework-agnostic TypeScript + Tailwind starter scaffolded successfully!')
+      );
+      logger.info('\nNext steps:');
+      logger.info(`1. Install deps: ${chalk.cyan('npm install')} (or the manager of your choice)`);
+      logger.info(`2. Run Tailwind once: ${chalk.cyan('npm run build:css')}`);
+      logger.info(`3. Wire the exported components into your preferred framework.`);
+    } catch (e) {
+      spinner.fail('Failed to scaffold framework-agnostic starter');
       if (e instanceof Error) logger.error(e.message);
       process.exit(1);
     }

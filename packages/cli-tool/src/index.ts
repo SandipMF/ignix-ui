@@ -5,7 +5,11 @@ import { addCommand } from './commands/add';
 import { initCommand } from './commands/init';
 import { listCommand } from './commands/list';
 import { themesCommand } from './commands/theme';
-import { startersCommandMonorepo, startersCommandNextjsApp } from './commands/starters';
+import {
+  startersCommandMonorepo,
+  startersCommandNextjsApp,
+  startersCommandUniversal,
+} from './commands/starters';
 import { logger } from './utils/logger';
 import { RegistryService } from './services/RegistryService';
 
@@ -19,6 +23,7 @@ program.addCommand(listCommand);
 program.addCommand(themesCommand);
 program.addCommand(startersCommandMonorepo);
 program.addCommand(startersCommandNextjsApp);
+program.addCommand(startersCommandUniversal);
 // Display welcome message
 function showWelcome(): void {
   console.log(`
@@ -117,6 +122,7 @@ async function startInteractiveCLI(): Promise<void> {
             choices: [
               { title: 'Next.js App (App Router + TypeScript + Tailwind)', value: 'nextjs-app' },
               { title: 'Monorepo (Turborepo + pnpm)', value: 'monorepo' },
+              { title: 'Universal TS + Tailwind (Framework agnostic)', value: 'universal-app' },
             ],
             initial: 0,
           });
@@ -124,6 +130,13 @@ async function startInteractiveCLI(): Promise<void> {
             await startersCommandMonorepo.parseAsync(['node', 'ignix', 'starters', 'monorepo']);
           } else if (resp.starter === 'nextjs-app') {
             await startersCommandNextjsApp.parseAsync(['node', 'ignix', 'starters', 'nextjs-app']);
+          } else if (resp.starter === 'universal-app') {
+            await startersCommandUniversal.parseAsync([
+              'node',
+              'ignix',
+              'starters',
+              'universal-app',
+            ]);
           }
           break;
         }
