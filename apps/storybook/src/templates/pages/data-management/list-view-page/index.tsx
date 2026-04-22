@@ -1,0 +1,1740 @@
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type ReactNode,
+} from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+    MagnifyingGlassIcon,
+    MixerHorizontalIcon,
+    CaretSortIcon,
+    ArrowUpIcon,
+    ArrowDownIcon,
+    EyeOpenIcon,
+    Pencil1Icon,
+    TrashIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    ReloadIcon,
+    CheckIcon,
+    ExclamationTriangleIcon,
+} from "@radix-ui/react-icons";
+import { cn } from "../../../../../utils/cn";
+import { Badge } from "../../../../components/badge";
+import { Avatar } from "../../../../components/avatar";
+import { Button } from "../../../../components/button";
+import { Typography } from "../../../../components/typography";
+
+function useClickOutside<T extends HTMLElement>(
+    ref: React.RefObject<T | null>,
+    enabled: boolean,
+    onOutside: () => void
+) {
+    useEffect(() => {
+        if (!enabled) return;
+        const handler = (e: MouseEvent | TouchEvent) => {
+            const el = ref.current;
+            if (el && !el.contains(e.target as Node)) onOutside();
+        };
+        document.addEventListener("mousedown", handler);
+        document.addEventListener("touchstart", handler);
+        return () => {
+            document.removeEventListener("mousedown", handler);
+            document.removeEventListener("touchstart", handler);
+        };
+    }, [enabled, ref, onOutside]);
+}
+
+interface PopoverProps {
+    trigger: (props: { open: boolean; toggle: () => void }) => ReactNode;
+    align?: "start" | "end";
+    width?: string;
+    children: ReactNode | ((close: () => void) => ReactNode);
+}
+
+function Popover({ trigger, align = "end", width = "w-60", children }: PopoverProps) {
+    const [open, setOpen] = useState(false);
+    const wrapRef = useRef<HTMLDivElement>(null);
+    useClickOutside(wrapRef, open, () => setOpen(false));
+    useEffect(() => {
+        if (!open) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setOpen(false);
+        };
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+    }, [open]);
+    const close = useCallback(() => setOpen(false), []);
+    return (
+        <div ref={wrapRef} className="relative inline-block">
+            {trigger({ open, toggle: () => setOpen((o) => !o) })}
+            <AnimatePresence>
+                {open && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                        transition={{ duration: 0.12 }}
+                        className={cn(
+                            "absolute z-50 mt-2 overflow-hidden rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md",
+                            width,
+                            "max-w-[calc(100vw-1rem)]",
+                            align === "end"
+                            ? "left-0 sm:left-auto sm:right-0"
+                            : "left-0"
+                        )}
+                    >
+                        {typeof children === "function" ? children(close) : children}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+function PopoverLabel({ children }: { children: ReactNode }) {
+    return (
+        <div className="px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground">
+            {children}
+        </div>
+    );
+}
+
+function PopoverSeparator() {
+    return <div className="my-1 h-px bg-border" />;
+}
+
+function PopoverItem({
+    onClick,
+    children,
+    className,
+}: {
+    onClick?: () => void;
+    children: ReactNode;
+    className?: string;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={cn(
+                "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-muted focus:bg-muted focus:outline-none",
+                className
+            )}
+        >
+            {children}
+        </button>
+    );
+}
+
+function PopoverCheckboxItem({
+    checked,
+    onChange,
+    children,
+}: {
+    checked: boolean;
+    onChange: () => void;
+    children: ReactNode;
+}) {
+    return (
+        <button
+            type="button"
+            role="menuitemcheckbox"
+            aria-checked={checked}
+            onClick={onChange}
+            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-muted focus:bg-muted focus:outline-none"
+        >
+            <span
+                className={cn(
+                    "grid h-4 w-4 place-items-center rounded-sm border",
+                    checked
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border"
+                )}
+            >
+                {checked && <CheckIcon className="h-3 w-3" />}
+            </span>
+            {children}
+        </button>
+    );
+}
+
+function PopoverRadioItem({
+    checked,
+    onChange,
+    children,
+}: {
+    checked: boolean;
+    onChange: () => void;
+    children: ReactNode;
+}) {
+    return (
+        <button
+            type="button"
+            role="menuitemradio"
+            aria-checked={checked}
+            onClick={onChange}
+            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-muted focus:bg-muted focus:outline-none"
+        >
+            <span
+                className={cn(
+                    "grid h-4 w-4 place-items-center rounded-full border",
+                    checked ? "border-primary" : "border-border"
+                )}
+            >
+                {checked && <span className="h-2 w-2 rounded-full bg-primary" />}
+            </span>
+            {children}
+        </button>
+    );
+}
+
+interface ModalProps {
+    open: boolean;
+    onClose: () => void;
+    children: ReactNode;
+}
+
+function Modal({ open, onClose, children }: ModalProps) {
+    useEffect(() => {
+        if (!open) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        document.addEventListener("keydown", onKey);
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.removeEventListener("keydown", onKey);
+            document.body.style.overflow = prev;
+        };
+    }, [open, onClose]);
+    return (
+        <AnimatePresence>
+            {open && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="fixed inset-0 z-50 grid place-items-center bg-background/70 p-4 backdrop-blur-sm"
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                        transition={{ type: "spring", stiffness: 360, damping: 28 }}
+                        role="dialog"
+                        aria-modal
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
+                    >
+                        {children}
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+}
+
+/* ============================================
+   TYPES & INTERFACES
+============================================ */
+
+export type Theme = "light" | "dark";
+
+export type PaginationMode = "pagination" | "infinite-scroll";
+
+export type SortDirection = "asc" | "desc";
+
+export interface SortState<TKey extends string = string> {
+    key: TKey;
+    direction: SortDirection;
+}
+
+export interface SortOption<TKey extends string = string> {
+    /** Key sent to the server / sort callback. */
+    key: TKey;
+    /** Human label shown in the Sort dropdown. */
+    label: string;
+}
+
+export interface FilterGroup {
+    /** Stable id for this group (used as the key in the filters record). */
+    id: string;
+    /** Section header in the filter dropdown. */
+    label: string;
+    /** Allowed values. */
+    options: { value: string; label: string }[];
+}
+
+/** Map of filter group id -> selected values. */
+export type FiltersState = Record<string, string[]>;
+
+export interface ListItemAuthor {
+    name: string;
+    initials: string;
+}
+
+export interface ListItem {
+    id: string;
+    title: string;
+    description?: string;
+    /** Visual badge color is picked from the consumer-supplied status map. */
+    status?: string;
+    category?: string;
+    tags?: string[];
+    /** ISO date string or formatted date — rendered as-is. */
+    date?: string;
+    author?: ListItemAuthor;
+    /**
+     * Anything else you want to attach. Available in callbacks as `item.meta`.
+     */
+    meta?: Record<string, unknown>;
+}
+
+/**
+ * Visual mapping for a status value.
+ * Keys correspond to `ListItem.status`. Provide one entry per status you use.
+ */
+export interface StatusStyle {
+    /** Tailwind classes for the badge background and text. */
+    className: string;
+    /** Tailwind class for the small dot. */
+    dotClassName: string;
+}
+
+export interface ListViewLabels {
+    title?: string;
+    subtitle?: string;
+    searchPlaceholder?: string;
+    emptyTitle?: string;
+    emptyDescription?: string;
+    errorTitle?: string;
+    errorDescription?: string;
+    /** Title shown in the delete confirmation. */
+    deleteTitle?: string;
+    /** Body text in the delete confirmation. `{title}` is replaced. */
+    deleteDescription?: string;
+    deleteConfirmText?: string;
+    editConfirmText?: string;
+    updateText?: string;
+}
+
+export interface ListViewProps {
+    /* ---------------------------- Data ----------------------------------- */
+    items: ListItem[];
+    /** Total number of items across all pages (server total). Defaults to items.length. */
+    totalCount?: number;
+    loading?: boolean;
+    /** When set, renders the error state instead of the list. */
+    error?: string | null;
+
+    /* ---------------------------- Visual --------------------------------- */
+    /** Theme applied via a `dark` class wrapper. Uncontrolled if omitted. */
+    theme?: Theme;
+
+    /* ---------------------------- Mode ----------------------------------- */
+    mode?: PaginationMode;
+
+    /* ---------------------------- Search --------------------------------- */
+    query?: string;
+    onQueryChange?: (q: string) => void;
+
+    /* ---------------------------- Sort ----------------------------------- */
+    sort?: SortState;
+    onSortChange?: (sort: SortState) => void;
+    sortOptions?: SortOption[];
+
+    /* ---------------------------- Filters -------------------------------- */
+    filters?: FiltersState;
+    onFiltersChange?: (filters: FiltersState) => void;
+    filterGroups?: FilterGroup[];
+
+    /* ---------------------------- Pagination ----------------------------- */
+    page?: number;
+    onPageChange?: (page: number) => void;
+    pageSize?: number;
+    /** Triggered when the infinite-scroll sentinel becomes visible. */
+    onLoadMore?: () => void;
+
+    /* ---------------------------- Selection ------------------------------ */
+    selectedId?: string | null;
+    onSelectedIdChange?: (id: string | null) => void;
+
+    /* ---------------------------- Actions -------------------------------- */
+    /** Show the View action. Receives the row item. */
+    onView?: (item: ListItem) => void | Promise<void>;
+    /** Show the Edit action. Receives the row item. Return a promise for loading state. */
+    onEdit?: (item: ListItem) => void | Promise<void>;
+    /** Show the Delete action. Confirmed by built-in AlertDialog before firing. */
+    onDelete?: (item: ListItem) => void | Promise<void>;
+
+    /* ---------------------------- Status visuals ------------------------- */
+    /**
+     * Map status string -> color classes. Falls back to a neutral style.
+     * Provide an entry for each status you'll display.
+     */
+    statusStyles?: Record<string, StatusStyle>;
+
+    /* ---------------------------- Labels --------------------------------- */
+    labels?: ListViewLabels;
+
+    /* ---------------------------- Misc ----------------------------------- */
+    className?: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              CONTROLLED HOOK                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Hybrid controlled/uncontrolled state. If `controlledValue` is provided
+ * (consumer drives state) we use it; otherwise we fall back to internal state.
+ * Either way `onChange` is fired so the consumer can react.
+ */
+function useControlled<T>(
+    controlledValue: T | undefined,
+    defaultValue: T,
+    onChange?: (next: T) => void
+): [T, (next: T) => void] {
+    const isControlled = controlledValue !== undefined;
+    const [internal, setInternal] = useState<T>(defaultValue);
+    const value = isControlled ? (controlledValue as T) : internal;
+    const setValue = useCallback(
+        (next: T) => {
+            if (!isControlled) setInternal(next);
+            onChange?.(next);
+        },
+        [isControlled, onChange]
+    );
+    return [value, setValue];
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                DEFAULTS                                    */
+/* -------------------------------------------------------------------------- */
+
+const DEFAULT_LABELS: Required<ListViewLabels> = {
+    title: "Items",
+    subtitle: "",
+    searchPlaceholder: "Search…",
+    emptyTitle: "No items match your filters",
+    emptyDescription: "Try clearing filters or adjusting your search.",
+    errorTitle: "Couldn't load items",
+    errorDescription: "Something went wrong. Please try again.",
+    deleteTitle: "Delete this item?",
+    deleteDescription:
+        'You\'re about to delete "{title}". This action cannot be undone.',
+    deleteConfirmText: "Delete",
+    editConfirmText: "Edit",
+    updateText: "Update",
+};
+
+const DEFAULT_STATUS_STYLE: StatusStyle = {
+    className:
+        "bg-muted text-muted-foreground ring-1 ring-inset ring-border",
+    dotClassName: "bg-muted-foreground/60",
+};
+
+/* -------------------------------------------------------------------------- */
+/*                               COMPONENT                                    */
+/* -------------------------------------------------------------------------- */
+
+export function ListView(props: ListViewProps) {
+    const {
+        items,
+        totalCount,
+        loading = false,
+        error = null,
+
+        theme: themeProp,
+
+        mode: modeProp,
+
+        query: queryProp,
+        onQueryChange,
+
+        sort: sortProp,
+        onSortChange,
+        sortOptions,
+
+        filters: filtersProp,
+        onFiltersChange,
+        filterGroups,
+
+        page: pageProp,
+        onPageChange,
+        pageSize = 10,
+        onLoadMore,
+
+        selectedId: selectedIdProp,
+        onSelectedIdChange,
+
+        onView,
+        onEdit,
+        onDelete,
+
+        statusStyles,
+        labels: labelsProp,
+        className,
+    } = props;
+
+    const labels = { ...DEFAULT_LABELS, ...labelsProp };
+    const total = totalCount ?? items.length;
+
+    const [theme, setTheme] = useControlled<Theme>(
+        themeProp,
+        "light",
+    );
+    const [mode, setMode] = useControlled<PaginationMode>(
+        modeProp,
+        "pagination",
+    );
+    const [query, setQuery] = useControlled<string>(queryProp, "", onQueryChange);
+    const [sort, setSort] = useControlled<SortState>(
+        sortProp,
+        sortOptions && sortOptions.length
+            ? { key: sortOptions[0].key, direction: "desc" }
+            : { key: "date", direction: "desc" },
+        onSortChange
+    );
+    const [filters, setFilters] = useControlled<FiltersState>(
+        filtersProp,
+        {},
+        onFiltersChange
+    );
+    const [page, setPage] = useControlled<number>(pageProp, 1, onPageChange);
+    const [selectedId, setSelectedId] = useControlled<string | null>(
+        selectedIdProp,
+        null,
+        onSelectedIdChange
+    );
+
+    const [deleteTarget, setDeleteTarget] = useState<ListItem | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [viewTarget, setViewTarget] = useState<ListItem | null>(null);
+    const [editTarget, setEditTarget] = useState<ListItem | null>(null);
+    const [saving, setSaving] = useState(false);
+
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const hasMore = mode === "infinite-scroll" && items.length < total;
+
+    /* IntersectionObserver for infinite scroll */
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
+    useEffect(() => {
+        if (mode !== "infinite-scroll" || !onLoadMore) return;
+        const node = sentinelRef.current;
+        if (!node) return;
+        const obs = new IntersectionObserver(
+            (entries) => {
+                for (const e of entries) {
+                    if (e.isIntersecting && !loading && hasMore) onLoadMore();
+                }
+            },
+            { rootMargin: "200px 0px" }
+        );
+        obs.observe(node);
+        return () => obs.disconnect();
+    }, [mode, onLoadMore, loading, hasMore]);
+
+    const activeFilterCount = useMemo(
+        () => Object.values(filters).reduce((acc, arr) => acc + arr.length, 0),
+        [filters]
+    );
+
+    const toggleFilter = (groupId: string, value: string) => {
+        const current = filters[groupId] ?? [];
+        const next = current.includes(value)
+            ? current.filter((v) => v !== value)
+            : [...current, value];
+        const nextFilters = { ...filters, [groupId]: next };
+        if (next.length === 0) delete nextFilters[groupId];
+        setFilters(nextFilters);
+        setPage(1);
+    };
+
+    const clearFilters = () => {
+        setFilters({});
+        setPage(1);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deleteTarget || !onDelete) return;
+        try {
+            setDeleting(true);
+            await onDelete(deleteTarget);
+        } finally {
+            setDeleting(false);
+            setDeleteTarget(null);
+        }
+    };
+
+    const handleSaveEdit = async (next: ListItem) => {
+        if (!onEdit) {
+            setEditTarget(null);
+            return;
+        }
+        try {
+            setSaving(true);
+            await onEdit(next);
+            setEditTarget(null);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className={cn(theme === "dark" && "dark", className)}>
+            <div className="min-h-full bg-background text-foreground">
+                <div className="mx-auto max-w-5xl px-6 py-10">
+                    <Header
+                        labels={labels}
+                        total={total}
+                        mode={mode}
+                        setMode={setMode}
+                        theme={theme}
+                        setTheme={setTheme}
+                    />
+
+                    <Toolbar
+                        query={query}
+                        setQuery={(q) => {
+                            setQuery(q);
+                            setPage(1);
+                        }}
+                        labels={labels}
+                        filterGroups={filterGroups}
+                        filters={filters}
+                        toggleFilter={toggleFilter}
+                        clearFilters={clearFilters}
+                        activeFilterCount={activeFilterCount}
+                        sortOptions={sortOptions}
+                        sort={sort}
+                        setSort={setSort}
+                    />
+
+                    {error ? (
+                        <ErrorState
+                            title={labels.errorTitle}
+                            description={error || labels.errorDescription}
+                        />
+                    ) : items.length === 0 && !loading ? (
+                        <EmptyState
+                            title={labels.emptyTitle}
+                            description={labels.emptyDescription}
+                        />
+                    ) : (
+                        <ItemList
+                            items={items}
+                            selectedId={selectedId}
+                            onSelect={setSelectedId}
+                            onView={onView ? (it) => setViewTarget(it) : undefined}
+                            onEdit={onEdit ? (it) => setEditTarget(it) : undefined}
+                            onDelete={onDelete ? (it) => setDeleteTarget(it) : undefined}
+                            statusStyles={statusStyles}
+                            loading={loading && items.length === 0}
+                        />
+                    )}
+
+                    {!error && mode === "pagination" && total > 0 && (
+                        <PaginationFooter
+                            page={page}
+                            totalPages={totalPages}
+                            total={total}
+                            pageSize={pageSize}
+                            onChange={setPage}
+                        />
+                    )}
+
+                    {!error && mode === "infinite-scroll" && (
+                        <InfiniteFooter
+                            hasMore={hasMore}
+                            loading={loading}
+                            shown={items.length}
+                            total={total}
+                            sentinelRef={sentinelRef}
+                        />
+                    )}
+                </div>
+
+                <ViewDialog
+                    item={viewTarget}
+                    statusStyles={statusStyles}
+                    onClose={() => setViewTarget(null)}
+                    onEdit={
+                        onEdit
+                            ? (it) => {
+                                setViewTarget(null);
+                                setEditTarget(it);
+                            }
+                            : undefined
+                    }
+                    labels={labels}
+                />
+
+                <EditDialog
+                    item={editTarget}
+                    saving={saving}
+                    statusStyles={statusStyles}
+                    onCancel={() => !saving && setEditTarget(null)}
+                    onSave={handleSaveEdit}
+                    labels={labels}
+                />
+
+                <DeleteDialog
+                    item={deleteTarget}
+                    deleting={deleting}
+                    labels={labels}
+                    onCancel={() => !deleting && setDeleteTarget(null)}
+                    onConfirm={handleConfirmDelete}
+                />
+            </div>
+        </div>
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                 HEADER                                     */
+/* -------------------------------------------------------------------------- */
+
+interface HeaderProps {
+    labels: Required<ListViewLabels>;
+    total: number;
+    mode: PaginationMode;
+    setMode: (m: PaginationMode) => void;
+    theme: Theme;
+    setTheme: (t: Theme) => void;
+}
+
+function Header({
+    labels,
+    total,
+}: HeaderProps) {
+    return (
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                {labels.subtitle && (
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                        {labels.subtitle}
+                    </p>
+                )}
+                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
+                    {labels.title}
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    {total} item{total === 1 ? "" : "s"}
+                </p>
+            </div>
+        </div>
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                TOOLBAR                                     */
+/* -------------------------------------------------------------------------- */
+
+interface ToolbarProps {
+    query: string;
+    setQuery: (v: string) => void;
+    labels: Required<ListViewLabels>;
+    filterGroups?: FilterGroup[];
+    filters: FiltersState;
+    toggleFilter: (groupId: string, value: string) => void;
+    clearFilters: () => void;
+    activeFilterCount: number;
+    sortOptions?: SortOption[];
+    sort: SortState;
+    setSort: (s: SortState) => void;
+}
+
+function Toolbar({
+    query,
+    setQuery,
+    labels,
+    filterGroups,
+    filters,
+    toggleFilter,
+    clearFilters,
+    activeFilterCount,
+    sortOptions,
+    sort,
+    setSort,
+}: ToolbarProps) {
+    const sortLabel =
+        sortOptions?.find((o) => o.key === sort.key)?.label ?? sort.key;
+    return (
+        <div className="sticky top-4 z-20 mb-6 rounded-2xl border border-border bg-card/80 p-3 shadow-sm backdrop-blur-md">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex-1 rounded-lg border border-primary/10">
+                    <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder={labels.searchPlaceholder}
+                        className="h-10 w-full rounded-lg bg-background pl-9 pr-9 text-sm outline-none border border-transparent focus:border-primary focus:outline-none focus:ring-0"
+                    />
+                    {query && (
+                        <button
+                            type="button"
+                            aria-label="Clear search"
+                            onClick={() => setQuery("")}
+                            className="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                            <span className="text-xs">×</span>
+                        </button>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                    {filterGroups && filterGroups.length > 0 && (
+                        <Popover
+                            align="end"
+                            width="w-60"
+                            trigger={({ toggle }) => (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-10 gap-2 rounded-lg"
+                                    onClick={toggle}
+                                >
+                                    <MixerHorizontalIcon className="h-4 w-4" />
+                                    Filters
+                                    {activeFilterCount > 0 && (
+                                        <Badge
+                                            text={String(activeFilterCount)}
+                                            variant="pulse"
+                                            className="h-5 min-w-5 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground"
+                                        >
+                                            {activeFilterCount}
+                                        </Badge>
+                                    )}
+                                </Button>
+                            )}
+                        >
+                            {(close) => (
+                                <>
+                                    {filterGroups.map((group, i) => (
+                                        <div key={group.id}>
+                                            {i > 0 && <PopoverSeparator />}
+                                            <PopoverLabel>{group.label}</PopoverLabel>
+                                            {group.options.map((opt) => (
+                                                <PopoverCheckboxItem
+                                                    key={opt.value}
+                                                    checked={(filters[group.id] ?? []).includes(opt.value)}
+                                                    onChange={() => toggleFilter(group.id, opt.value)}
+                                                >
+                                                    {opt.label}
+                                                </PopoverCheckboxItem>
+                                            ))}
+                                        </div>
+                                    ))}
+                                    {activeFilterCount > 0 && (
+                                        <>
+                                            <PopoverSeparator />
+                                            <PopoverItem
+                                                onClick={() => {
+                                                    clearFilters();
+                                                    close();
+                                                }}
+                                                className="text-muted-foreground"
+                                            >
+                                                Clear all filters
+                                            </PopoverItem>
+                                        </>
+                                    )}
+                                </>
+                            )}
+                        </Popover>
+                    )}
+
+                    {sortOptions && sortOptions.length > 0 && (
+                        <Popover
+                            align="end"
+                            width="w-44"
+                            trigger={({ toggle }) => (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-10 gap-2 rounded-lg"
+                                    onClick={toggle}
+                                >
+                                    <CaretSortIcon className="h-4 w-4" />
+                                    Sort
+                                    <span className="text-muted-foreground">{sortLabel}</span>
+                                    {sort.direction === "asc" ? (
+                                        <ArrowUpIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                                    ) : (
+                                        <ArrowDownIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                                    )}
+                                </Button>
+                            )}
+                        >
+                            <PopoverLabel>Sort by</PopoverLabel>
+                            {sortOptions.map((opt) => (
+                                <PopoverRadioItem
+                                    key={opt.key}
+                                    checked={sort.key === opt.key}
+                                    onChange={() => setSort({ ...sort, key: opt.key })}
+                                >
+                                    {opt.label}
+                                </PopoverRadioItem>
+                            ))}
+                            <PopoverSeparator />
+                            <PopoverLabel>Direction</PopoverLabel>
+                            <PopoverRadioItem
+                                checked={sort.direction === "asc"}
+                                onChange={() => setSort({ ...sort, direction: "asc" })}
+                            >
+                                Ascending
+                            </PopoverRadioItem>
+                            <PopoverRadioItem
+                                checked={sort.direction === "desc"}
+                                onChange={() => setSort({ ...sort, direction: "desc" })}
+                            >
+                                Descending
+                            </PopoverRadioItem>
+                        </Popover>
+                    )}
+                </div>
+            </div>
+
+            <AnimatePresence>
+                {activeFilterCount > 0 && filterGroups && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                        animate={{ opacity: 1, height: "auto", marginTop: 12 }}
+                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                    >
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            {filterGroups.flatMap((g) =>
+                                (filters[g.id] ?? []).map((v) => {
+                                    const opt = g.options.find((o) => o.value === v);
+                                    return (
+                                        <FilterChip
+                                            key={`${g.id}-${v}`}
+                                            label={opt?.label ?? v}
+                                            onRemove={() => toggleFilter(g.id, v)}
+                                        />
+                                    );
+                                })
+                            )}
+                            <button
+                                type="button"
+                                onClick={clearFilters}
+                                className="ml-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+                            >
+                                Clear all
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+function FilterChip({
+    label,
+    onRemove,
+}: {
+    label: string;
+    onRemove: () => void;
+}) {
+    return (
+        <motion.span
+            layout
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 py-1 pl-2.5 pr-1 text-xs text-foreground"
+        >
+            {label}
+            <button
+                type="button"
+                aria-label={`Remove ${label}`}
+                onClick={onRemove}
+                className="grid h-4 w-4 place-items-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground"
+            >
+                <span className="text-[10px]">×</span>
+            </button>
+        </motion.span>
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                LIST + ROW                                  */
+/* -------------------------------------------------------------------------- */
+
+interface ItemListProps {
+    items: ListItem[];
+    selectedId: string | null;
+    onSelect: (id: string | null) => void;
+    onView?: (item: ListItem) => void | Promise<void>;
+    onEdit?: (item: ListItem) => void | Promise<void>;
+    onDelete?: (item: ListItem) => void;
+    statusStyles?: Record<string, StatusStyle>;
+    loading: boolean;
+}
+
+function ItemList({
+    items,
+    selectedId,
+    onSelect,
+    onView,
+    onEdit,
+    onDelete,
+    statusStyles,
+    loading,
+}: ItemListProps) {
+    if (loading) {
+        return (
+            <ul className="flex flex-col gap-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                    <SkeletonRow key={i} />
+                ))}
+            </ul>
+        );
+    }
+    return (
+        <motion.div
+            layout
+            className="flex flex-col gap-3 p-0"
+            initial="hidden"
+            animate="show"
+            variants={{
+                hidden: {},
+                show: { transition: { staggerChildren: 0.04, delayChildren: 0.05 } },
+            }}
+        >
+            <AnimatePresence initial={false}>
+                {items.map((item) => (
+                    <ListRow
+                        key={item.id}
+                        item={item}
+                        selected={selectedId === item.id}
+                        onSelect={() =>
+                            onSelect(selectedId === item.id ? null : item.id)
+                        }
+                        onView={onView ? () => onView(item) : undefined}
+                        onEdit={onEdit ? () => onEdit(item) : undefined}
+                        onDelete={onDelete ? () => onDelete(item) : undefined}
+                        statusStyles={statusStyles}
+                    />
+                ))}
+            </AnimatePresence>
+        </motion.div>
+    );
+}
+
+interface ListRowProps {
+    item: ListItem;
+    selected: boolean;
+    onSelect: () => void;
+    onView?: () => void;
+    onEdit?: () => void;
+    onDelete?: () => void;
+    statusStyles?: Record<string, StatusStyle>;
+}
+
+function ListRow({
+    item,
+    selected,
+    onSelect,
+    onView,
+    onEdit,
+    onDelete,
+    statusStyles,
+}: ListRowProps) {
+    return (
+        <motion.li
+            layout
+            variants={{
+                hidden: { opacity: 0, y: 6 },
+                show: { opacity: 1, y: 0 },
+            }}
+            exit={{ opacity: 0, y: -6, transition: { duration: 0.18 } }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            whileHover={{ y: -1 }}
+            onClick={onSelect}
+            className={cn(
+                "group relative cursor-pointer overflow-hidden rounded-2xl border bg-card p-5 shadow-sm transition-colors",
+                "hover:border-border hover:shadow-md",
+                selected
+                    ? "border-primary/40 bg-primary/[0.04] ring-1 ring-primary/20"
+                    : "border-border/70"
+            )}
+        >
+            <AnimatePresence>
+                {selected && (
+                    <motion.span
+                        initial={{ scaleY: 0 }}
+                        animate={{ scaleY: 1 }}
+                        exit={{ scaleY: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute left-0 top-1/2 h-10 w-1 -translate-y-1/2 origin-center rounded-r-full bg-primary"
+                    />
+                )}
+            </AnimatePresence>
+
+            <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                        <h3 className="truncate text-base font-semibold text-foreground">
+                            {item.title}
+                        </h3>
+                        {selected && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                                <CheckIcon className="h-3 w-3" />
+                                Selected
+                            </span>
+                        )}
+                    </div>
+
+                    {item.description && (
+                        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground line-clamp-2">
+                            {item.description}
+                        </p>
+                    )}
+
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
+                        {item.status && (
+                            <StatusBadge status={item.status} styles={statusStyles} />
+                        )}
+                        {item.date && (
+                            <span className="text-muted-foreground">{item.date}</span>
+                        )}
+                        {item.category && (
+                            <>
+                                <span className="h-1 w-1 rounded-full bg-border" />
+                                <span className="text-muted-foreground">{item.category}</span>
+                            </>
+                        )}
+                        {item.tags && item.tags.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                {item.tags.map((t) => (
+                                    <span
+                                        key={t}
+                                        className="rounded-md border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                                    >
+                                        {t}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                        {item.author && (
+                            <div className="ml-auto flex items-center gap-1.5">
+                                <Avatar
+                                    size="sm"
+                                    letters={item.author.name}
+                                    backgroundColor='bg-primary/5'
+                                />
+                                <span className="text-xs text-muted-foreground">
+                                    {item.author.name}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <RowActions
+                    onView={onView}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onClick={(e) => e.stopPropagation()}
+                />
+            </div>
+        </motion.li>
+    );
+}
+
+function RowActions({
+    onView,
+    onEdit,
+    onDelete,
+    onClick,
+}: {
+    onView?: () => void;
+    onEdit?: () => void;
+    onDelete?: () => void;
+    onClick: (e: React.MouseEvent) => void;
+}) {
+    const actions: {
+        label: string;
+        Icon: typeof EyeOpenIcon;
+        handler?: () => void;
+        destructive?: boolean;
+    }[] = [
+            { label: "View", Icon: EyeOpenIcon, handler: onView },
+            { label: "Edit", Icon: Pencil1Icon, handler: onEdit },
+            { label: "Delete", Icon: TrashIcon, handler: onDelete, destructive: true },
+        ];
+    const visible = actions.filter((a) => a.handler);
+    if (visible.length === 0) return null;
+    return (
+        <div
+            onClick={onClick}
+            className="flex items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        >
+            {visible.map(({ label, Icon, handler, destructive }) => (
+                <Button
+                    key={label}
+                    variant="ghost"
+                    size="icon"
+                    aria-label={label}
+                    title={label}
+                    onClick={handler}
+                    className={cn(
+                        "h-9 w-9 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground",
+                        destructive && "hover:bg-destructive/10 hover:text-destructive"
+                    )}
+                >
+                    <Icon className="h-4 w-4" />
+                </Button>
+            ))}
+        </div>
+    );
+}
+
+function SkeletonRow() {
+    return (
+        <li className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1 space-y-3">
+                    <div className="h-4 w-2/5 animate-pulse rounded bg-muted" />
+                    <div className="h-3 w-11/12 animate-pulse rounded bg-muted" />
+                    <div className="h-3 w-3/4 animate-pulse rounded bg-muted" />
+                    <div className="flex gap-2 pt-1">
+                        <div className="h-4 w-16 animate-pulse rounded-full bg-muted" />
+                        <div className="h-4 w-12 animate-pulse rounded bg-muted" />
+                        <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                    </div>
+                </div>
+                <div className="flex items-center gap-1">
+                    <div className="h-8 w-8 animate-pulse rounded-lg bg-muted" />
+                    <div className="h-8 w-8 animate-pulse rounded-lg bg-muted" />
+                    <div className="h-8 w-8 animate-pulse rounded-lg bg-muted" />
+                </div>
+            </div>
+        </li>
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                BADGES                                      */
+/* -------------------------------------------------------------------------- */
+
+function StatusBadge({
+    status,
+    styles,
+}: {
+    status: string;
+    styles?: Record<string, StatusStyle>;
+}) {
+    const s = styles?.[status] ?? DEFAULT_STATUS_STYLE;
+    return (
+        <span
+            className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                s.className
+            )}
+        >
+            <span className={cn("h-1.5 w-1.5 rounded-full", s.dotClassName)} />
+            {status}
+        </span>
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              EMPTY / ERROR                                 */
+/* -------------------------------------------------------------------------- */
+
+function EmptyState({
+    title,
+    description,
+    icon,
+}: {
+    title: string;
+    description: string;
+    icon?: ReactNode;
+}) {
+    return (
+        <div className="rounded-2xl border border-dashed border-border bg-card/40 p-12 text-center">
+            {icon}
+            <p className="text-sm font-medium text-foreground">{title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        </div>
+    );
+}
+
+function ErrorState({
+    title,
+    description,
+}: {
+    title: string;
+    description: string;
+}) {
+    return (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-12 text-center">
+            <div className="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-full bg-destructive/10 text-destructive">
+                <ExclamationTriangleIcon className="h-5 w-5" />
+            </div>
+            <p className="text-sm font-medium text-foreground">{title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        </div>
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              FOOTERS                                       */
+/* -------------------------------------------------------------------------- */
+
+function PaginationFooter({
+    page,
+    totalPages,
+    total,
+    pageSize,
+    onChange,
+}: {
+    page: number;
+    totalPages: number;
+    total: number;
+    pageSize: number;
+    onChange: (p: number) => void;
+}) {
+    const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
+    const end = Math.min(page * pageSize, total);
+
+    const pages = useMemo(() => {
+        const out: (number | "...")[] = [];
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
+                out.push(i);
+            } else if (out[out.length - 1] !== "...") {
+                out.push("...");
+            }
+        }
+        return out;
+    }, [page, totalPages]);
+
+    return (
+        <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-xl border border-border bg-card/60 px-4 py-3 sm:flex-row">
+            <p className="text-xs text-muted-foreground">
+                Showing <span className="font-medium text-foreground">{start}</span>–
+                <span className="font-medium text-foreground">{end}</span> of{" "}
+                <span className="font-medium text-foreground">{total}</span>
+            </p>
+            <nav className="flex items-center gap-1">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-md"
+                    aria-label="Previous page"
+                    disabled={page <= 1}
+                    onClick={() => onChange(Math.max(1, page - 1))}
+                >
+                    <ChevronLeftIcon className="h-4 w-4" />
+                </Button>
+                {pages.map((p, idx) =>
+                    p === "..." ? (
+                        <span key={`e-${idx}`} className="px-1.5 text-xs text-muted-foreground">
+                            …
+                        </span>
+                    ) : (
+                        <button
+                            key={p}
+                            type="button"
+                            onClick={() => onChange(p)}
+                            className={cn(
+                                "relative h-8 min-w-8 rounded-md px-2.5 text-xs font-medium transition-colors",
+                                "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            )}
+                        >
+                            {p === page && (
+                                <motion.span
+                                    layoutId="lv-page-pill"
+                                    className="absolute inset-0 -z-10 rounded-md bg-primary"
+                                    transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                                />
+                            )}
+                            {p}
+                        </button>
+                    )
+                )}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-md"
+                    aria-label="Next page"
+                    disabled={page >= totalPages}
+                    onClick={() => onChange(Math.min(totalPages, page + 1))}
+                >
+                    <ChevronRightIcon className="h-4 w-4" />
+                </Button>
+            </nav>
+        </div>
+    );
+}
+
+function InfiniteFooter({
+    hasMore,
+    loading,
+    shown,
+    total,
+    sentinelRef,
+}: {
+    hasMore: boolean;
+    loading: boolean;
+    shown: number;
+    total: number;
+    sentinelRef: React.RefObject<HTMLDivElement | null>;
+}) {
+    return (
+        <div className="mt-4">
+            {hasMore && (
+                <div ref={sentinelRef} className="flex flex-col gap-3">
+                    <SkeletonRow />
+                </div>
+            )}
+            <div className="mt-4 flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground">
+                {loading && <ReloadIcon className="h-3.5 w-3.5 animate-spin" />}
+                <span>
+                    {hasMore ? (
+                        <>Loading more…</>
+                    ) : (
+                        <>
+                            All caught up ·{" "}
+                            <span className="font-medium text-foreground">{shown}</span> of{" "}
+                            <span className="font-medium text-foreground">{total}</span>
+                        </>
+                    )}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                VIEW DIALOG                                 */
+/* -------------------------------------------------------------------------- */
+
+function ViewDialog({
+    item,
+    statusStyles,
+    onClose,
+    onEdit,
+    labels
+}: {
+    item: ListItem | null;
+    statusStyles?: Record<string, StatusStyle>;
+    onClose: () => void;
+    onEdit?: (item: ListItem) => void;
+    labels: Required<ListViewLabels>;
+}) {
+    return (
+        <Modal open={!!item} onClose={onClose}>
+            {item && (
+                <div className="space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <h2 className="text-lg font-semibold text-foreground">
+                                {item.title}
+                            </h2>
+                            {item.category && (
+                                <p className="mt-0.5 text-xs uppercase tracking-wider text-muted-foreground">
+                                    {item.category}
+                                </p>
+                            )}
+                        </div>
+                        {item.status && statusStyles?.[item.status] && (
+                            <Badge
+                                className={cn(
+                                    "shrink-0 gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap",
+                                    statusStyles[item.status].className
+                                )}
+                                text={item.status}
+                            />
+                        )}
+                    </div>
+
+                    {item.description && (
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                            {item.description}
+                        </p>
+                    )}
+
+                    {item.tags && item.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                            {item.tags.map((tag) => (
+                                <Typography key={tag} variant="label">{tag}</Typography>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                            {item.author && (
+                                <>
+                                    <Avatar
+                                        className="h-6 w-6 text-[10px]"
+                                        letters={item.author.initials}
+                                        backgroundColor='bg-primary/5'
+                                    />
+                                    <span className="text-foreground">{item.author.name}</span>
+                                </>
+                            )}
+                        </div>
+                        {item.date && <span>{item.date}</span>}
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button
+                            variant="outline"
+                            onClick={onClose}
+                            className="rounded-lg"
+                        >
+                            Cancel
+                        </Button>
+                        {onEdit && (
+                            <Button
+                                variant="default"
+                                onClick={() => onEdit(item)}
+                                className="gap-1.5 rounded-lg"
+                            >
+                                <Pencil1Icon className="h-3.5 w-3.5" />
+                                {labels.editConfirmText}
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            )}
+        </Modal>
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                EDIT DIALOG                                 */
+/* -------------------------------------------------------------------------- */
+
+function EditDialog({
+    item,
+    saving,
+    statusStyles,
+    onCancel,
+    onSave,
+    labels
+}: {
+    item: ListItem | null;
+    saving: boolean;
+    statusStyles?: Record<string, StatusStyle>;
+    onCancel: () => void;
+    onSave: (next: ListItem) => void | Promise<void>;
+    labels: Required<ListViewLabels>;
+}) {
+    const [draft, setDraft] = useState<ListItem | null>(null);
+    const [tagsText, setTagsText] = useState("");
+
+    useEffect(() => {
+        if (item) {
+            setDraft(item);
+            setTagsText((item.tags ?? []).join(", "));
+        }
+    }, [item]);
+
+    const statusOptions = Object.keys(statusStyles ?? {});
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!draft) return;
+        const tags = tagsText
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean);
+        void onSave({ ...draft, tags });
+    };
+
+    const inputCls =
+        "mt-1 w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
+
+    return (
+        <Modal open={!!item} onClose={() => !saving && onCancel()}>
+            {draft && (
+                <form onSubmit={handleSubmit} className="space-y-3">
+                    <div>
+                        <h2 className="text-base font-semibold text-foreground">
+                            Edit item
+                        </h2>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                            Update the fields and click save.
+                        </p>
+                    </div>
+
+                    <label className="block text-xs font-medium text-foreground">
+                        Title
+                        <input
+                            required
+                            disabled={saving}
+                            value={draft.title}
+                            onChange={(e) =>
+                                setDraft({ ...draft, title: e.target.value })
+                            }
+                            className={inputCls}
+                        />
+                    </label>
+
+                    <label className="block text-xs font-medium text-foreground">
+                        Description
+                        <textarea
+                            rows={3}
+                            disabled={saving}
+                            value={draft.description ?? ""}
+                            onChange={(e) =>
+                                setDraft({ ...draft, description: e.target.value })
+                            }
+                            className={cn(inputCls, "resize-none")}
+                        />
+                    </label>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <label className="block text-xs font-medium text-foreground">
+                            Status
+                            {statusOptions.length > 0 ? (
+                                <select
+                                    disabled={saving}
+                                    value={draft.status ?? ""}
+                                    onChange={(e) =>
+                                        setDraft({ ...draft, status: e.target.value })
+                                    }
+                                    className={inputCls}
+                                >
+                                    <option value="">—</option>
+                                    {statusOptions.map((s) => (
+                                        <option key={s} value={s}>
+                                            {s}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input
+                                    disabled={saving}
+                                    value={draft.status ?? ""}
+                                    onChange={(e) =>
+                                        setDraft({ ...draft, status: e.target.value })
+                                    }
+                                    className={inputCls}
+                                />
+                            )}
+                        </label>
+
+                        <label className="block text-xs font-medium text-foreground">
+                            Category
+                            <input
+                                disabled={saving}
+                                value={draft.category ?? ""}
+                                onChange={(e) =>
+                                    setDraft({ ...draft, category: e.target.value })
+                                }
+                                className={inputCls}
+                            />
+                        </label>
+                    </div>
+
+                    <label className="block text-xs font-medium text-foreground">
+                        Tags
+                        <input
+                            disabled={saving}
+                            placeholder="Comma separated"
+                            value={tagsText}
+                            onChange={(e) => setTagsText(e.target.value)}
+                            className={inputCls}
+                        />
+                    </label>
+
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={saving}
+                            onClick={onCancel}
+                            className="rounded-lg"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="default"
+                            type="submit"
+                            disabled={saving}
+                            className="gap-1.5 rounded-lg"
+                        >
+                            {saving && <ReloadIcon className="h-3.5 w-3.5 animate-spin" />}
+                            {labels.updateText}
+                        </Button>
+                    </div>
+                </form>
+            )}
+        </Modal>
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              DELETE DIALOG                                 */
+/* -------------------------------------------------------------------------- */
+
+function DeleteDialog({
+    item,
+    deleting,
+    labels,
+    onCancel,
+    onConfirm,
+}: {
+    item: ListItem | null;
+    deleting: boolean;
+    labels: Required<ListViewLabels>;
+    onCancel: () => void;
+    onConfirm: () => void;
+}) {
+    const description = item
+        ? labels.deleteDescription.replace("{title}", item.title)
+        : "";
+    return (
+        <Modal open={!!item} onClose={onCancel}>
+            {item && (
+                <div>
+                    <div className="mb-3 grid h-10 w-10 place-items-center rounded-full bg-destructive/10 text-destructive">
+                        <ExclamationTriangleIcon className="h-5 w-5" />
+                    </div>
+                    <h2 className="text-base font-semibold text-foreground">
+                        {labels.deleteTitle}
+                    </h2>
+                    <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>
+                    <div className="mt-6 flex justify-end gap-2">
+                        <Button
+                            variant="outline"
+                            disabled={deleting}
+                            onClick={onCancel}
+                            className="rounded-lg"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="danger"
+                            disabled={deleting}
+                            onClick={onConfirm}
+                            className="gap-1.5 rounded-lg"
+                        >
+                            {deleting && <ReloadIcon className="h-3.5 w-3.5 animate-spin" />}
+                            {labels.deleteConfirmText}
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </Modal>
+    );
+}
