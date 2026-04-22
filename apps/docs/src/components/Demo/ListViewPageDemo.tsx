@@ -383,24 +383,56 @@ export const ListViewDemo = (): JSX.Element => {
 
     const buildCodeString = (): string => {
         const props = [
-        `items={items}`,
-        `totalCount={filtered.length}`,
-        `mode="${mode}"`,
-        `theme="${themeVariant}"`,
-        `pageSize={${pageSize}}`,
-        mode === 'pagination'
-            ? `page={page}\n    onPageChange={setPage}`
-            : `onLoadMore={() => setVisibleCount((n) => n + ${pageSize})}`,
-        `query={query}`,
-        `onQueryChange={setQuery}`,
-        showFilters ? `filters={filters}\n    onFiltersChange={setFilters}\n    filterGroups={SAMPLE_FILTER_GROUPS}` : null,
-        showSort ? `sort={sort}\n    onSortChange={setSort}\n    sortOptions={SAMPLE_SORT_OPTIONS}` : null,
-        `statusStyles={SAMPLE_STATUS_STYLES}`,
-        showActions
-            ? `onView={(it) => console.log("view", it)}\n    onEdit={(it) => console.log("edit", it)}\n    onDelete={async (it) => setItems((p) => p.filter((x) => x.id !== it.id))}`
-            : null,
-        stateVariant === 'loading' ? `loading` : null,
-        stateVariant === 'error' ? `error="Couldn't reach the server."` : null,
+            `items={pagedItems}`,
+            `totalCount={filtered.length}`,
+            `mode="${mode}"`,
+            `theme="${themeVariant}"`,
+            `pageSize={${pageSize}}`,
+
+            mode === 'pagination'
+                ? `page={page}
+            onPageChange={setPage}`
+                : `onLoadMore={() => setVisibleCount((n) => Math.min(n + ${pageSize}, filtered.length))}`,
+
+            `query={query}`,
+            `onQueryChange={setQuery}`,
+
+            showFilters
+                ? `filters={filters}
+            onFiltersChange={setFilters}
+            filterGroups={SAMPLE_FILTER_GROUPS}`
+                : null,
+
+            showSort
+                ? `sort={sort}
+            onSortChange={setSort}
+            sortOptions={SAMPLE_SORT_OPTIONS}`
+                : null,
+
+            `statusStyles={SAMPLE_STATUS_STYLES}`,
+
+            `labels={{
+                title: 'Components',
+                subtitle: 'Library',
+                searchPlaceholder: 'Search components, tags, descriptions…',
+            }}`,
+
+            showActions
+                ? `onView={(it) => console.log("view", it)}
+            onEdit={(it) => console.log("edit", it)}
+            onDelete={async (it) => {
+                await new Promise((r) => setTimeout(r, 400));
+                setItems((p) => p.filter((x) => x.id !== it.id));
+            }}`
+                : null,
+
+            `onSelectedIdChange={(id) => console.log("selected", id)}`,
+
+            stateVariant === 'loading' ? `loading` : null,
+
+            stateVariant === 'error'
+                ? `error="Couldn't reach the server."`
+                : null,
         ].filter(Boolean);
 
         return `import { useEffect, useMemo, useState } from 'react';
@@ -409,6 +441,9 @@ import {
     type ListItem,
     type FiltersState,
     type SortState,
+    type FilterGroup,
+    type SortOption,
+    type StatusStyle,
 } from '@ignix-ui/list-view-page';
 
 const SAMPLE_ITEMS: ListItem[] = [
@@ -676,26 +711,45 @@ function applyClientQuery(
 
 
 export function MyListView() {
-    const PAGE_SIZE = ${pageSize};
+    const PAGE_SIZE = 5;
+
+    // Live data
     const [items, setItems] = useState<ListItem[]>(SAMPLE_ITEMS);
-    const [query, setQuery] = useState('');
+    const [query, setQuery] = useState<string>('');
     const [filters, setFilters] = useState<FiltersState>({});
     const [sort, setSort] = useState<SortState>({ key: 'date', direction: 'desc' });
-    const [page, setPage] = useState(1);
-    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+    const [page, setPage] = useState<number>(1);
+    const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
 
+    // Filter / sort
     const filtered = useMemo(
         () => applyClientQuery(items, { query, filters, sort }),
         [items, query, filters, sort]
     );
 
-    useEffect(() => { setPage(1); setVisibleCount(PAGE_SIZE); }, [query, filters, sort]);
+    // Reset page / infinite cursor on query/filter/sort change
+    useEffect(() => {
+        setPage(1);
+        setVisibleCount(PAGE_SIZE);
+    }, [query, filters, sort, PAGE_SIZE]);
 
-    const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    // Pagination math
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const safePage = Math.min(page, totalPages);
+    const pagedItems = useMemo(
+        () => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+        [filtered, safePage, PAGE_SIZE]
+    );
+
+    // Infinite-scroll slice
+    const infiniteItems = useMemo(
+        () => filtered.slice(0, visibleCount),
+        [filtered, visibleCount]
+    );
 
     return (
     <ListView
-    ${props.join('\n    ')}
+    ${props.join("\n  ")}
     />
     );
 }`;
@@ -760,7 +814,7 @@ export function MyListView() {
                         </span>
                     </label>
                 ))}
-                 <Button
+                <Button
                     variant="outline"
                     size="sm"
                     onClick={(): void => {
