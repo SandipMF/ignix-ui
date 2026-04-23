@@ -314,9 +314,9 @@ import {
   type ListItem,
   type FiltersState,
   type SortState,
-  FilterGroup,
-  SortOption,
-  StatusStyle,
+  type FilterGroup,
+  type SortOption,
+  type StatusStyle,
 } from "./index";
 
 /* ================= TEST HELPERS ================= */

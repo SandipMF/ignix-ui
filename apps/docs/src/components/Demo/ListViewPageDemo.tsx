@@ -383,7 +383,10 @@ export const ListViewDemo = (): JSX.Element => {
 
     const buildCodeString = (): string => {
         const props = [
-            `items={pagedItems}`,
+            mode === 'pagination'
+                ? `items={pagedItems}`
+                : `items={infiniteItems}`,
+
             `totalCount={filtered.length}`,
             `mode="${mode}"`,
             `theme="${themeVariant}"`,
