@@ -452,9 +452,8 @@ export function ListView(props: ListViewProps) {
         loading = false,
         error = null,
 
-        theme: themeProp,
-
-        mode: modeProp,
+        theme,
+        mode,
 
         query: queryProp,
         onQueryChange,
@@ -487,14 +486,6 @@ export function ListView(props: ListViewProps) {
     const labels = { ...DEFAULT_LABELS, ...labelsProp };
     const total = totalCount ?? items.length;
 
-    const [theme, setTheme] = useControlled<Theme>(
-        themeProp,
-        "light",
-    );
-    const [mode, setMode] = useControlled<PaginationMode>(
-        modeProp,
-        "pagination",
-    );
     const [query, setQuery] = useControlled<string>(queryProp, "", onQueryChange);
     const [sort, setSort] = useControlled<SortState>(
         sortProp,
@@ -568,9 +559,11 @@ export function ListView(props: ListViewProps) {
         try {
             setDeleting(true);
             await onDelete(deleteTarget);
+            setDeleteTarget(null);
+        } catch (error) {
+            console.error("Failed to delete item", error);
         } finally {
             setDeleting(false);
-            setDeleteTarget(null);
         }
     };
 
@@ -583,6 +576,8 @@ export function ListView(props: ListViewProps) {
             setSaving(true);
             await onEdit(next);
             setEditTarget(null);
+        } catch (error) {
+            console.error("Failed to update item", error);
         } finally {
             setSaving(false);
         }
@@ -595,10 +590,6 @@ export function ListView(props: ListViewProps) {
                     <Header
                         labels={labels}
                         total={total}
-                        mode={mode}
-                        setMode={setMode}
-                        theme={theme}
-                        setTheme={setTheme}
                     />
 
                     <Toolbar
@@ -705,10 +696,6 @@ export function ListView(props: ListViewProps) {
 interface HeaderProps {
     labels: Required<ListViewLabels>;
     total: number;
-    mode: PaginationMode;
-    setMode: (m: PaginationMode) => void;
-    theme: Theme;
-    setTheme: (t: Theme) => void;
 }
 
 function Header({
@@ -809,9 +796,7 @@ function Toolbar({
                                             text={String(activeFilterCount)}
                                             variant="pulse"
                                             className="h-5 min-w-5 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground"
-                                        >
-                                            {activeFilterCount}
-                                        </Badge>
+                                        />
                                     )}
                                 </Button>
                             )}
@@ -1064,6 +1049,15 @@ function ListRow({
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             whileHover={{ y: -1 }}
             onClick={onSelect}
+            onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                    onSelect?.();
+                }
+                if (e.key === " " || e.key === "Spacebar") {
+                    e.preventDefault();
+                    onSelect?.();
+                }
+            }}
             className={cn(
                 "group relative cursor-pointer overflow-hidden rounded-2xl border bg-card p-5 shadow-sm transition-colors",
                 "hover:border-border hover:shadow-md",
@@ -1133,7 +1127,7 @@ function ListRow({
                             <div className="ml-auto flex items-center gap-1.5">
                                 <Avatar
                                     size="sm"
-                                    letters={item.author.name}
+                                    letters={item.author.initials}
                                     backgroundColor='bg-primary/5'
                                 />
                                 <span className="text-xs text-muted-foreground">
