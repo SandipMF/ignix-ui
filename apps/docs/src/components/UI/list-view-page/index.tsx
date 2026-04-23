@@ -642,7 +642,7 @@ export function ListView(props: ListViewProps) {
                         />
                     )}
 
-                    {!error && mode === "infinite-scroll" && (
+                    {items.length > 0 && !error && mode === "infinite-scroll" && (
                         <InfiniteFooter
                             hasMore={hasMore}
                             loading={loading}
