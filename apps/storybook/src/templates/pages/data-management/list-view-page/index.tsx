@@ -452,8 +452,8 @@ export function ListView(props: ListViewProps) {
         loading = false,
         error = null,
 
-        theme,
-        mode,
+        theme = "light",
+        mode = "pagination",
 
         query: queryProp,
         onQueryChange,
@@ -642,7 +642,7 @@ export function ListView(props: ListViewProps) {
                         />
                     )}
 
-                    {items.length > 0 && !error && mode === "infinite-scroll" && (
+                    {items.length > 0 > !error && mode === "infinite-scroll" && (
                         <InfiniteFooter
                             hasMore={hasMore}
                             loading={loading}
@@ -989,7 +989,7 @@ function ItemList({
         );
     }
     return (
-        <motion.div
+        <motion.ul
             layout
             className="flex flex-col gap-3 p-0"
             initial="hidden"
@@ -1015,7 +1015,7 @@ function ItemList({
                     />
                 ))}
             </AnimatePresence>
-        </motion.div>
+        </motion.ul>
     );
 }
 
@@ -1048,6 +1048,9 @@ function ListRow({
             exit={{ opacity: 0, y: -6, transition: { duration: 0.18 } }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             whileHover={{ y: -1 }}
+            role="button"
+            tabIndex={0}
+            aria-pressed={selected}
             onClick={onSelect}
             onKeyDown={(e) => {
                 if (e.key === "Enter") {

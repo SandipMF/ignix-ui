@@ -7,9 +7,9 @@ import {
     type SortState,
     type PaginationMode,
     type Theme,
-    SortOption,
-    StatusStyle,
-    FilterGroup,
+    type SortOption,
+    type StatusStyle,
+    type FilterGroup,
 } from '../UI/list-view-page';
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
@@ -349,8 +349,13 @@ export const ListViewDemo = (): JSX.Element => {
 
     // Filter / sort
     const filtered = useMemo(
-        () => applyClientQuery(items, { query, filters, sort }),
-        [items, query, filters, sort]
+        () =>
+            applyClientQuery(items, {
+                query,
+                filters: showFilters ? filters : {},
+                sort: showSort ? sort : undefined,
+            }),
+        [items, query, filters, sort, showFilters, showSort]
     );
 
     // Reset page / infinite cursor on query/filter/sort change
