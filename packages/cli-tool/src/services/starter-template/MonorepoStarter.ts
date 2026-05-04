@@ -357,6 +357,7 @@ export default nextConfig; `;
 
   // Create Root Layout with ThemeProvider
   const layout = `import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@mindfiredigital/ignix-ui';
 import './globals.css';
@@ -371,7 +372,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -446,6 +447,10 @@ export default function Page() {
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
