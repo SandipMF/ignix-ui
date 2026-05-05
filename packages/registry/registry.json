@@ -1765,12 +1765,16 @@
       "files": {
         "main": {
           "path": "templates/pages/calendar-view-page/index.tsx",
+          "type": "template"
+        }
+      }
+    },
     "list-view-page": {
       "name": "list-view-page",
       "description": "A modern, themeable list view with search, multi-group filters, sortable columns, pagination or infinite scroll, row actions (view / edit / delete), and built-in dialogs.",
       "dependencies": [
         "class-variance-authority",
-        "@radix-ui/react-icons", 
+        "@radix-ui/react-icons",
         "framer-motion"
       ],
       "componentDependencies": [
