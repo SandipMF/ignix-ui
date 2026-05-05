@@ -409,6 +409,7 @@ export function MegaMenuMultiColumnDropdown({
   }, []);
 
   const openMenu = React.useCallback(() => {
+    clearOpenTimeout();
     clearCloseTimeout();
     openTimeoutRef.current = setTimeout(() => {
       setIsOpen(true);
@@ -419,6 +420,7 @@ export function MegaMenuMultiColumnDropdown({
   }, [clearCloseTimeout, onOpen]);
 
   const closeMenu = React.useCallback(() => {
+    clearCloseTimeout();
     clearOpenTimeout();
     closeTimeoutRef.current = setTimeout(() => {
       setIsOpen(false);
@@ -427,6 +429,14 @@ export function MegaMenuMultiColumnDropdown({
       closeTimeoutRef.current = null;
     }, 120);
   }, [clearOpenTimeout, onClose]);
+
+  /** Clear all pending timers on unmount to prevent memory leaks or test errors. */
+  React.useEffect(() => {
+    return () => {
+      clearOpenTimeout();
+      clearCloseTimeout();
+    };
+  }, [clearOpenTimeout, clearCloseTimeout]);
 
   /** Sync focus to DOM element by index. */
   React.useEffect(() => {
