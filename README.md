@@ -58,7 +58,7 @@ For full documentation, visit [mindfiredigital.github.io/ignix-ui](https://mindf
 
 ## Component Generator (For Contributors)
 
-Ignix UI includes a **scaffolding script** that helps contributors quickly create new components with all the necessary boilerplate files.  
+Ignix UI includes a **scaffolding script** that helps contributors quickly create new components with all the necessary files.
 This ensures consistency, speeds up development, and keeps the project structure clean.
 
 ### Usage
