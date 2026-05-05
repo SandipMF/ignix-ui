@@ -40,6 +40,7 @@ import {
     DropdownSeparator,
     DropdownCheckboxItem,
 } from "../../../../components/dropdown";
+import { FileUpload } from "../../../../components/file-upload";
 import { ToastProvider, useToast } from "../../../../components/toast";
 import { ChevronDown, Check } from "lucide-react";
 
@@ -706,6 +707,7 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
     const [labelDraft, setLabelDraft] = useState("");
     const [labelColor, setLabelColor] = useState<LabelColor>("rose");
     const [assigneeDraft, setAssigneeDraft] = useState("");
+    const [attachmentCount, setAttachmentCount] = useState(0);
 
     const modeRef = useRef(mode);
     const cardRef = useRef(card);
@@ -723,6 +725,7 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
             setLabels(c.labels);
             setAssignees(c.assignees);
             setDueDate(c.dueDate ? new Date(c.dueDate) : undefined);
+            setAttachmentCount(c.attachments ?? 0);
         } else {
             setTitle("");
             setDescription("");
@@ -730,6 +733,7 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
             setLabels([]);
             setAssignees([]);
             setDueDate(undefined);
+            setAttachmentCount(0);
         }
         setLabelDraft("");
         setLabelColor("rose");
@@ -771,7 +775,7 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
             assignees,
             dueDate: dueDate ? dueDate.toISOString() : undefined,
             comments: card?.comments,
-            attachments: card?.attachments,
+            attachments: attachmentCount,
         };
         if (mode === "edit" && card) {
             dispatch({ type: "updateCard", card: { id: card.id, ...payload } });
@@ -989,6 +993,21 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                             placeholder=""
                         />
                     </div>
+
+                    {/* Attachments */}
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium leading-none text-foreground/90 flex items-center gap-2">
+                            <Paperclip className="h-4 w-4" />
+                            Attachments
+                        </label>
+                        <FileUpload
+                            onFilesChange={(files) => setAttachmentCount(files.length)}
+                            mode="dropzone"
+                            maxFiles={5}
+                            simulateUpload={true}
+                            className="bg-background/50"
+                        />
+                    </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-4 border-t gap-2">
@@ -1009,7 +1028,7 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                         <Button variant="ghost" size="sm" onClick={handleClose}>
                             Cancel
                         </Button>
-                        <Button size="sm" onClick={handleSave} disabled={!title.trim()}>
+                        <Button size="sm" className="bg-primary text-background" onClick={handleSave} disabled={!title.trim()}>
                             {mode === "create" ? "Create Card" : "Save Changes"}
                         </Button>
                     </div>
