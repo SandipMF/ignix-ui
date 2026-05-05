@@ -187,6 +187,25 @@
         }
       }
     },
+    "empty-state": {
+      "name": "Empty-State",
+      "description": "An advanced, interactive empty state template featuring 3D mouse-tracking tilt effects, a custom particle system, and support for multiple themes and accent colors.",
+      "dependencies": [
+        "@radix-ui/react-icons",
+        "framer-motion",
+        "class-variance-authority"
+      ],
+      "componentDependencies": [
+        "button",
+        "typography"
+      ],
+      "files": {
+        "main": {
+          "path": "templates/pages/empty-state-page/index.tsx",
+          "type": "template"
+        }
+      }
+    },
     "errorPage": {
       "name": "ErrorPage",
       "description": "A customizable error page template with multiple animation variants, designed to display clear messaging, illustration/icons.",
@@ -1746,6 +1765,23 @@
       "files": {
         "main": {
           "path": "templates/pages/calendar-view-page/index.tsx",
+    "list-view-page": {
+      "name": "list-view-page",
+      "description": "A modern, themeable list view with search, multi-group filters, sortable columns, pagination or infinite scroll, row actions (view / edit / delete), and built-in dialogs.",
+      "dependencies": [
+        "class-variance-authority",
+        "@radix-ui/react-icons", 
+        "framer-motion"
+      ],
+      "componentDependencies": [
+        "typography",
+        "button",
+        "avatar",
+        "badge"
+      ],
+      "files": {
+        "main": {
+          "path": "templates/pages/list-view-page/index.tsx",
           "type": "template"
         }
       }

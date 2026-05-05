@@ -6,10 +6,10 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { Search, Copy, type LucideIcon } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "../../../utils/cn";
-import { Button } from "@ignix-ui/button";
-import { Typography } from "@ignix-ui/typography";
-import { ButtonWithIcon } from "@ignix-ui/buttonwithicon";
+import { cn } from "../../../../utils/cn";
+import { Button } from "../../../components/button";
+import { Typography } from "../../../components/typography";
+import { ButtonWithIcon } from "../../../components/buttonwithicon";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types & Interfaces
@@ -29,24 +29,24 @@ export interface ErrorPageClassProps {
   className?: string;
 }
 
-export interface ErrorPageHeadingProps extends ErrorPageClassProps{
+export interface ErrorPageHeadingProps extends ErrorPageClassProps {
   /** Main error title */
   title?: string;
 }
 
-export interface ErrorPageDescProps extends ErrorPageClassProps{
+export interface ErrorPageDescProps extends ErrorPageClassProps {
   /** Error description message */
   description?: string;
 }
 
-export interface ErrorPageIllustrationProps extends ErrorPageClassProps{
+export interface ErrorPageIllustrationProps extends ErrorPageClassProps {
   /** Custom illustration - Can be React node, image URL, or component */
   illustration?: React.ReactNode | string;
   /** Illustration position */
   position?: "left" | "right" | "topCenter";
 }
 
-export interface ErrorPageSearchProps extends ErrorPageClassProps{
+export interface ErrorPageSearchProps extends ErrorPageClassProps {
   /** Show search bar */
   showSearch?: boolean;
   /** Search placeholder text */
@@ -98,10 +98,10 @@ const containerVariants = cva("min-h-screen w-full flex items-center justify-cen
   {
     variants: {
       variant: {
-          default: "bg-gradient-to-br from-background via-muted/30 to-background",
-          minimal: "bg-background",
-          gradient: "bg-gradient-to-br from-primary/5 via-secondary/5 to-primary/10",
-          dark: "bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950",
+        default: "bg-gradient-to-br from-background via-muted/30 to-background",
+        minimal: "bg-background",
+        gradient: "bg-gradient-to-br from-primary/5 via-secondary/5 to-primary/10",
+        dark: "bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950",
       },
     },
     defaultVariants: {
@@ -128,7 +128,7 @@ const itemAnimation = {
 
 const animationVariants = {
   pulse: {
-    initial: { opacity: 1, scale: 1 },
+    initial: { opacity: 1, scale: 1, rotate: 0, x: 0, y: 0 },
     animate: {
       opacity: [1, 0.7, 1],
       scale: [1, 1.05, 1],
@@ -140,9 +140,9 @@ const animationVariants = {
     },
   },
   bounce: {
-    initial: { y: 0 },
+    initial: { y: 0, rotate: 0, x: 0, scale: 1, opacity: 1 },
     animate: {
-        y: [0, -10, 0],
+      y: [0, -10, 0],
     },
     transition: {
       duration: 1.5,
@@ -151,10 +151,10 @@ const animationVariants = {
     },
   },
   glow: {
-    initial: { opacity: 1, filter: "brightness(1)" },
+    initial: { opacity: 1, filter: "brightness(1)", rotate: 0, x: 0, y: 0, scale: 1 },
     animate: {
-      opacity: [1, 0.8, 1],
-      filter: ["brightness(1)", "brightness(1.3)", "brightness(1)"],
+      opacity: [1, 0.6, 1],
+      filter: ["brightness(1)", "brightness(1.5)", "brightness(1)"],
     },
     transition: {
       duration: 2,
@@ -163,7 +163,7 @@ const animationVariants = {
     },
   },
   shake: {
-    initial: { x: 0 },
+    initial: { x: 0, rotate: 0, y: 0, scale: 1, opacity: 1 },
     animate: {
       x: [0, -5, 5, -5, 5, 0],
     },
@@ -174,7 +174,7 @@ const animationVariants = {
     },
   },
   rotate: {
-    initial: { rotate: 0 },
+    initial: { rotate: 0, x: 0, y: 0, scale: 1, opacity: 1 },
     animate: {
       rotate: [0, 5, -5, 5, -5, 0],
     },
@@ -185,7 +185,7 @@ const animationVariants = {
     },
   },
   none: {
-    initial: {},
+    initial: { rotate: 0, x: 0, y: 0, scale: 1, opacity: 1 },
     animate: {},
     transition: {},
   },
@@ -207,7 +207,7 @@ const renderIllustration = (
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6 }}
       >
-        <img src={illustration} alt="Error illustration" className="max-w-full h-full"/>
+        <img src={illustration} alt="Error illustration" className="max-w-full h-full" />
       </motion.div>
     );
   }
@@ -228,7 +228,7 @@ const renderIllustration = (
 // ErrorPage Context
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ErrorPageContext = React.createContext<{ 
+const ErrorPageContext = React.createContext<{
   variant?: "default" | "minimal" | "gradient" | "dark";
   backgroundImage?: string;
 }>({
@@ -250,16 +250,16 @@ export const ErrorPage: React.FC<ErrorPageProps> = React.memo(({
 }) => {
   // For centered layout, separate illustration from content
   const childrenArray = React.useMemo(() => React.Children.toArray(children), [children]);
-  
-  const illustrationChild = React.useMemo(() => 
+
+  const illustrationChild = React.useMemo(() =>
     childrenArray.find(
       (child) => React.isValidElement(child) && child.type === ErrorPageIllustration
     ) as React.ReactElement<ErrorPageIllustrationProps> | undefined,
     [childrenArray]
   );
-  
+
   // Separate absolute positioned divs (backgrounds) from content
-  const backgroundChildren = React.useMemo(() => 
+  const backgroundChildren = React.useMemo(() =>
     childrenArray.filter((child) => {
       if (React.isValidElement(child) && typeof child.type === 'string' && child.type === 'div') {
         const divElement = child as React.ReactElement<{ className?: string }>;
@@ -269,7 +269,7 @@ export const ErrorPage: React.FC<ErrorPageProps> = React.memo(({
     }),
     [childrenArray]
   );
-  
+
   const contentChildren = React.useMemo(() =>
     childrenArray.filter(
       (child) => {
@@ -286,7 +286,7 @@ export const ErrorPage: React.FC<ErrorPageProps> = React.memo(({
   );
 
   // Get illustration position (default to "left")
-  const illustrationPosition = React.useMemo(() => 
+  const illustrationPosition = React.useMemo(() =>
     illustrationChild?.props?.position || "left",
     [illustrationChild]
   );
@@ -294,7 +294,7 @@ export const ErrorPage: React.FC<ErrorPageProps> = React.memo(({
   const isTopCenter = illustrationPosition === "topCenter";
   const isDark = variant === "dark";
 
-  const backgroundStyle = React.useMemo(() => 
+  const backgroundStyle = React.useMemo(() =>
     backgroundImage ? {
       backgroundImage: `url(${backgroundImage})`,
       backgroundSize: "cover",
@@ -304,9 +304,9 @@ export const ErrorPage: React.FC<ErrorPageProps> = React.memo(({
     [backgroundImage]
   );
 
-  const contextValue = React.useMemo(() => ({ 
+  const contextValue = React.useMemo(() => ({
     variant: variant || "default",
-    backgroundImage 
+    backgroundImage
   }), [variant, backgroundImage]);
 
   // Icon positions and sizes for continuous motion
@@ -334,12 +334,11 @@ export const ErrorPage: React.FC<ErrorPageProps> = React.memo(({
       >
         {/* Background overlay for better text readability when background image is present */}
         {backgroundImage && (<div className="relative inset-0 bg-black/40 backdrop-blur-sm z-0" />)}
-        
         {/* Animated icons throughout the page */}
         {Icon && iconInstances.map((instance, index) => {
           const iconColorClass = iconColor ? iconColor : (backgroundImage || isDark ? "text-white" : "");
           const opacityRange = iconColor ? [0.2, 0.5, 0.2] : [0.1, 0.3, 0.1];
-          
+
           return (
             <motion.div
               key={index}
@@ -376,24 +375,24 @@ export const ErrorPage: React.FC<ErrorPageProps> = React.memo(({
                 },
               }}
             >
-              <Icon size={instance.size}/>
+              <Icon size={instance.size} />
             </motion.div>
           );
         })}
-        
+
         {/* Render absolute positioned background elements */}
         {backgroundChildren}
-        
+
         <div className="w-full max-w-9xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 relative z-10">
           {/* Illustration - Top Center (rendered outside flex container) */}
           {illustrationChild && isTopCenter && (
             <motion.div
-              className="flex items-center justify-center mb-8 lg:mb-12"
+              className="flex items-center justify-center mb-8 lg:mb-0"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
+              <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-md xl:max-w-xl">
                 {illustrationChild}
               </div>
             </motion.div>
@@ -421,7 +420,7 @@ export const ErrorPage: React.FC<ErrorPageProps> = React.memo(({
                 </div>
               </motion.div>
             )}
-            
+
             {/* Content wrapper for non-illustration children */}
             {contentChildren.length > 0 && (
               <div className="flex-1 w-full max-w-xl space-y-2 text-center lg:text-left">
@@ -469,28 +468,28 @@ export const ErrorPageErrorCode: React.FC<ErrorPageErrorCodeProps> = React.memo(
   const isDark = variant === "dark";
   const hasBackgroundImage = !!backgroundImage;
 
-  const selectedAnimation = React.useMemo(() => 
+  const selectedAnimation = React.useMemo(() =>
     animationVariants[animationType],
     [animationType]
   );
 
-  const ariaLabel = React.useMemo(() => 
+  const ariaLabel = React.useMemo(() =>
     `Error code ${errorCode || (children ? String(children).trim() : "404")}`,
     [errorCode, children]
   );
 
-  const textColorClass = React.useMemo(() => 
-    isDark || hasBackgroundImage ? "text-white" : "text-primary",
-    [isDark, hasBackgroundImage]
-  );
+  const textColorClass = React.useMemo(() => {
+    return isDark || hasBackgroundImage ? "text-white" : "text-primary";
+  }, [isDark, hasBackgroundImage]);
 
-  const illustrationContent = React.useMemo(() => 
+  const illustrationContent = React.useMemo(() =>
     illustration ? renderIllustration(illustration) : null,
     [illustration]
   );
 
   const errorCodeContent = (
     <motion.div
+      key={animationType}
       initial={selectedAnimation.initial}
       animate={selectedAnimation.animate}
       transition={selectedAnimation.transition}
@@ -698,7 +697,7 @@ export const ErrorPageHeading: React.FC<ErrorPageHeadingProps> = React.memo(({
   const { variant, backgroundImage } = React.useContext(ErrorPageContext);
   const isDark = variant === "dark";
   const hasBackgroundImage = !!backgroundImage;
-  const textColorClass = React.useMemo(() => 
+  const textColorClass = React.useMemo(() =>
     isDark || hasBackgroundImage ? "text-white" : "text-primary",
     [isDark, hasBackgroundImage]
   );
@@ -706,7 +705,9 @@ export const ErrorPageHeading: React.FC<ErrorPageHeadingProps> = React.memo(({
   if (children) {
     return (
       <motion.div variants={itemAnimation}>
-        <Typography variant="h2" className={cn("text-center text-3xl sm:text-4xl lg:text-5xl font-bold mb-4", textColorClass, className)}>
+        <Typography
+          variant="h2"
+          className={cn("text-center text-3xl sm:text-4xl lg:text-5xl font-bold mb-4", textColorClass, className)}>
           {children}
         </Typography>
       </motion.div>
@@ -715,8 +716,10 @@ export const ErrorPageHeading: React.FC<ErrorPageHeadingProps> = React.memo(({
 
   return (
     <motion.div variants={itemAnimation}>
-      <Typography variant="h2" className={cn("text-center text-3xl sm:text-4xl lg:text-5xl font-bold mb-4", textColorClass, className)}>
-      {title || "Page Not Found"}
+      <Typography
+        variant="h2"
+        className={cn("text-center text-3xl sm:text-4xl lg:text-5xl font-bold mb-4", textColorClass, className)}>
+        {title || "Page Not Found"}
       </Typography>
     </motion.div>
   );
@@ -736,8 +739,8 @@ export const ErrorPageDesc: React.FC<ErrorPageDescProps> = React.memo(({
   const { variant, backgroundImage } = React.useContext(ErrorPageContext);
   const isDark = variant === "dark";
   const hasBackgroundImage = !!backgroundImage;
-  const textColorClass = React.useMemo(() => 
-    isDark || hasBackgroundImage ? "text-white" : "text-muted-foreground",
+  const textColorClass = React.useMemo(() =>
+    isDark || hasBackgroundImage ? "text-white/80" : "text-muted-foreground",
     [isDark, hasBackgroundImage]
   );
 
@@ -779,7 +782,7 @@ export const ErrorPageIllustration: React.FC<ErrorPageIllustrationProps> = React
   children,
   className,
 }) => {
-  const content = React.useMemo(() => 
+  const content = React.useMemo(() =>
     children || renderIllustration(illustration),
     [children, illustration]
   );
@@ -807,7 +810,7 @@ export const ErrorPageContent: React.FC<ErrorPageClassProps> = React.memo(({
   className,
 }) => {
   return (
-    <motion.div className={cn("flex-1 w-full max-w-xl space-y-2 text-center lg:text-left",className)} variants={itemAnimation}>
+    <motion.div className={cn("flex-1 w-full max-w-xl space-y-2 text-center lg:text-left", className)} variants={itemAnimation}>
       {children}
     </motion.div>
   );
@@ -852,7 +855,7 @@ export const ErrorPageSearch: React.FC<ErrorPageSearchProps> = React.memo(({
         <div className="pl-4 pr-2 flex items-center justify-center text-muted-foreground group-focus-within:text-primary transition-colors">
           <Search className="h-5 w-5" />
         </div>
-        
+
         {/* Input Field */}
         <input
           type="text"
@@ -862,7 +865,7 @@ export const ErrorPageSearch: React.FC<ErrorPageSearchProps> = React.memo(({
           onKeyDown={handleKeyDown}
           className="flex-1 h-12 px-3 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none text-base"
         />
-        
+
         {/* Search Button - Hidden on mobile */}
         <Button
           variant="default"
@@ -886,16 +889,16 @@ export const ErrorPageFooter: React.FC<ErrorPageClassProps> = React.memo(({
   children,
   className,
 }) => {
-  const { backgroundImage } = React.useContext(ErrorPageContext);
-  
+  const { variant, backgroundImage } = React.useContext(ErrorPageContext);
+
   if (!children) return null;
 
   return (
-    <motion.div 
-      variants={itemAnimation} 
+    <motion.div
+      variants={itemAnimation}
       className={cn(
         "text-sm pt-8 border-t border-border text-center",
-        backgroundImage ? "text-white border-white/20" : "text-slate-500",
+        backgroundImage || variant === "dark" ? "text-white border-white/20" : "text-slate-500",
         className
       )}
     >
@@ -978,30 +981,30 @@ export const ErrorPageErrorReference: React.FC<ErrorPageErrorReferenceProps> = R
   // Don't render if no errorReferenceId is provided
   if (!errorReferenceId) return null;
 
-  const containerBgClass = React.useMemo(() => 
-    isDark || hasBackgroundImage 
-      ? "bg-slate-800/90 border-slate-700" 
+  const containerBgClass = React.useMemo(() =>
+    isDark || hasBackgroundImage
+      ? "bg-slate-800/90 border-slate-700"
       : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700",
     [isDark, hasBackgroundImage]
   );
 
-  const labelTextClass = React.useMemo(() => 
-    isDark || hasBackgroundImage 
-      ? "text-slate-300" 
+  const labelTextClass = React.useMemo(() =>
+    isDark || hasBackgroundImage
+      ? "text-slate-300"
       : "text-slate-600 dark:text-slate-400",
     [isDark, hasBackgroundImage]
   );
 
-  const idTextClass = React.useMemo(() => 
-    isDark || hasBackgroundImage 
-      ? "text-white" 
+  const idTextClass = React.useMemo(() =>
+    isDark || hasBackgroundImage
+      ? "text-white"
       : "text-slate-900 dark:text-slate-100",
     [isDark, hasBackgroundImage]
   );
 
-  const helperTextClass = React.useMemo(() => 
-    isDark || hasBackgroundImage 
-      ? "text-slate-400" 
+  const helperTextClass = React.useMemo(() =>
+    isDark || hasBackgroundImage
+      ? "text-slate-400"
       : "text-slate-500 dark:text-slate-500",
     [isDark, hasBackgroundImage]
   );
@@ -1025,12 +1028,12 @@ export const ErrorPageErrorReference: React.FC<ErrorPageErrorReferenceProps> = R
           </div>
           {showCopyButton && (
             <ButtonWithIcon
-              variant="outline"
+              variant="primary"
               size="sm"
-              icon={<Copy className="h-3 w-3" />}
+              icon={<Copy />}
               iconPosition="left"
               onClick={handleCopy}
-              className={cn("shrink-0",(isDark || hasBackgroundImage) && "border-slate-700 text-white hover:bg-slate-800")}>
+            >
               {copyButtonText}
             </ButtonWithIcon>
           )}

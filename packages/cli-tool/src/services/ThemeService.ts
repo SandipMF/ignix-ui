@@ -94,7 +94,8 @@ export class ThemeService {
         throw new Error(`Theme preset '${id}' not found in the registry.`);
       }
 
-      const destDir = path.resolve(config.themesDir);
+      const themesDir = config.themesDir || 'src/styles/themes';
+      const destDir = path.resolve(themesDir);
       await fs.ensureDir(destDir);
 
       const destFile = path.join(destDir, `${id}.ts`);
@@ -123,6 +124,10 @@ export const ${variableName}Theme: ThemeConfig = ${JSON.stringify(themeConfig.th
           logger.error(error.message);
         }
       }
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error(String(error));
     }
   }
 }

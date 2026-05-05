@@ -74,14 +74,40 @@ export class TemplateService {
       //--------------------------------------------------
       spinner && (spinner.text = 'Downloading template files...');
 
-      const templateDir = path.resolve(config.templateLayoutDir, name.toLowerCase());
+      const templateLayoutDir = config.templateLayoutDir || config.templatesDir || 'src/templates';
+      const templateDir = path.resolve(templateLayoutDir, name.toLowerCase());
       await fs.ensureDir(templateDir);
 
-      const baseUrl = config.registryUrl.replace('/registry.json', '');
+      let baseUrl = config.templateLayoutUrl || config.templateUrl || '';
+
+      if (!baseUrl) {
+        baseUrl = config.registryUrl?.replace('/registry.json', '') || '';
+        if (!baseUrl || baseUrl === config.registryUrl) {
+          if (!config.registryUrl) {
+            throw new Error(
+              'Registry URL not found in config. Please check your `ignix.config.js`.'
+            );
+          }
+
+          const lastSlashIndex = config.registryUrl.lastIndexOf('/');
+          baseUrl =
+            lastSlashIndex !== -1
+              ? config.registryUrl.substring(0, lastSlashIndex)
+              : config.registryUrl;
+        }
+      }
+
+      if (!baseUrl) {
+        throw new Error('Invalid download URL in config. Please check your `ignix.config.js`.');
+      }
       logger.info(`[Template] Base URL: ${baseUrl}`);
 
       for (const fileKey in templateConfig.files) {
         const fileInfo = templateConfig.files[fileKey];
+        if (!fileInfo || !fileInfo.path) {
+          logger.warn(`[Template] Missing file info for ${fileKey} in template ${name}`);
+          continue;
+        }
 
         const fileUrl = new URL(fileInfo.path, baseUrl + '/').toString();
         logger.info(`[Template] Downloading: ${fileUrl}`);
