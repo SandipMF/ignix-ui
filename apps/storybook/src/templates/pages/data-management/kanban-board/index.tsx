@@ -1003,8 +1003,10 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                         <FileUpload
                             onFilesChange={(files) => setAttachmentCount(files.length)}
                             mode="dropzone"
+                            multiple={true}
                             maxFiles={5}
                             simulateUpload={true}
+                            buttonText="Select Files"
                             className="bg-background/50"
                         />
                     </div>

@@ -1052,20 +1052,20 @@ const useFileUpload = ({
  * ```
  */
 export const FileUpload: React.FC<FileUploadProps> = ({
-    multiple = true,
+    multiple = false,
     maxFiles = 10,
-    maxSize = 5 * 1024 * 1024, // 5MB
+    maxSize = 10 * 1024 * 1024,
     accept = '*/*',
     onFilesChange,
     mode = 'both',
-    buttonText = 'Select Files',
+    buttonText = 'Upload Files',
     dropzoneText = 'Drag & drop files here or click to browse',
     showFileList = true,
     disabled = false,
     validateFile: customValidate,
     className,
     buttonVariant = 'primary',
-    simulateUpload = true,
+    simulateUpload = false,
     imageAvatarShape = 'circle',
     imageAvatarSize = 'md'
 }) => {
