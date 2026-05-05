@@ -20,7 +20,7 @@ The **Three Column SideBar Layout** component provides a complete layout solutio
     ignix add component ThreeColumnSidebarLayout
     ```
   </TabItem>
-  <TabItem value="manual" label="manual" className="max-h-[500px] overflow-y-auto">
+  <TabItem value="manual" label="Manual" className="max-h-[500px] overflow-y-auto">
   ```tsx
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -413,21 +413,24 @@ ThreeColumnSidebarLayout.displayName = "ThreeColumnSidebarLayout";
 
 
 ## Usage
+```tsx
+import { ThreeColumnSidebarLayout } from '@ignix-ui/threecolumnlayout';
+```
+
+### Basic Usage
 
 ```tsx
-  import { ThreeColumnSidebarLayout } from '@ignix-ui/threecolumnlayout';
-
-    function App() {
-      return (
-        <ThreeColumnSidebarLayout
-          header={<div>Header Content</div>}
-          sidebar={<div>Sidebar Content</div>}
-          rightSidebar={<div>Right Content</div>}
-        >
-          <div>Main Content</div>
-        </ThreeColumnSidebarLayout>
-      );
-    }
+function App() {
+    return (
+      <ThreeColumnSidebarLayout
+        header={<div>Header Content</div>}
+        sidebar={<div>Sidebar Content</div>}
+        rightSidebar={<div>Right Content</div>}
+      >
+      <div>Main Content</div>
+    </ThreeColumnSidebarLayout>
+  );
+}
 ```
 ## Props
 

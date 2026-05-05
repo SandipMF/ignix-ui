@@ -10,11 +10,8 @@ import { Badge } from '@site/src/components/UI/badge';
 import { Mail } from 'lucide-react';
 import BadgeDemo from '@site/src/components/Demo/BadgeDemo';
 
-## Overview
-
 Badges are small status descriptors that can be used to highlight specific information, such as notification counts, status indicators, or labels. They can include text, numbers, or just a dot indicator.
 
-## Preview
 <BadgeDemo />
 
 ## Installation
@@ -25,7 +22,7 @@ Badges are small status descriptors that can be used to highlight specific infor
     ignix add component badge
     ```
   </TabItem>
-  <TabItem value="manual" label="manual" className="max-h-[500px] overflow-y-auto">
+  <TabItem value="manual" label="Manual" className="max-h-[500px] overflow-y-auto">
     ```tsx
   import React from "react";
 import { motion, Variants } from "framer-motion";
@@ -196,16 +193,13 @@ function BasicBadge() {
 }
 ```
 
-
 ## Props
 
 | Prop | Type | Default | Description |
-|-----|-----|-----|-----|
-| `text` | `string` | — | Content displayed inside the badge (number or label) |
-| `type` | `"primary" \| "secondary" \| "success" \| "warning" \| "error"` | `"primary"` | Visual style of the badge |
-| `variant` | `"pulse" \| "bounce" \| "tinypop"` | `"tinypop"` | Animation style applied to the badge |
-| `mode` | `"inline" \| "attached"` | `"inline"` | When inline is used, Badge is rendered in normal layout flow (used with text, labels). When attached is used, Badge is positioned relative to its child (used with icons, buttons, avatars) |
-| `children` | `React.ReactNode` | — | Element to attach the badge to (required for `attached` mode) |
-| `className` | `string` | — | Additional custom styles |
-
----
+|------|------|---------|-------------|
+| `text` | `string` | - | Text to display inside the badge |
+| `mode` | `"inline" \| "attached"` | `"inline"` | Inline badge or attached badge mode |
+| `type` | `"primary" \| "secondary" \| "success" \| "warning" \| "error"` | `"primary"` | Visual style variant of the badge |
+| `variant` | `"pulse" \| "bounce" \| "tinypop"` | `"tinypop"` | Animation variant applied to the badge |
+| `className` | `string` | - | Additional CSS classes for the badge |
+| `children` | `React.ReactNode` | - | Component the badge will be attached to |

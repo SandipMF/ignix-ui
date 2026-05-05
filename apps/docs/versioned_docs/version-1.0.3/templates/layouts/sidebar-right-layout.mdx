@@ -10,14 +10,9 @@ import TabItem from '@theme/TabItem';
 import HeaderLayout from '@site/src/components/UI/header-layout';
 import TemplateSideBarLayoutDemo from '@site/src/components/Demo/TemplateSideBarLayoutDemo';
 
-## Overview
-
 The **Sidebar-right** component provides a complete layout solution with a header, sidebar, scrollable main content and footer. It's designed to be highly configurable with support for responsive design, animations, and various layout variants. This component is perfect for building dashboards, and complex web applications.
 
-## Preview
-
 <TemplateSideBarLayoutDemo layout="right"/>
-
 
 ## Installation
 
@@ -27,7 +22,7 @@ The **Sidebar-right** component provides a complete layout solution with a heade
     ignix add component SidebarRightLayout
     ```
   </TabItem>
-<TabItem value="manual" label="manual" className="max-h-[500px] overflow-y-auto">
+<TabItem value="manual" label="Manual" className="max-h-[500px] overflow-y-auto">
 ```tsx
 import * as React from "react";
 import { motion, AnimatePresence, type PanInfo } from "framer-motion";
@@ -332,28 +327,31 @@ SidebarRightLayout.displayName = "SidebarRightLayout";
 ## Usage
 
 ```tsx
-  import { SidebarRightLayout } from '@ignix-ui/sidebar-right-layout';
+import { SidebarRightLayout } from '@ignix-ui/sidebar-right-layout';
+```
 
-    function App() {
-      return (
-        <SidebarRightLayout
-          variant="default"
-          mobileBreakpoint="md"
-          sidebarWidth="default"
-          sidebarPosition="right"
-          stickyHeader={true}
-          stickyFooter={false}
-          overlay={true}
-          enableGestures={true}
-          header={<div>Header Content</div>}
-          sidebar={<div>Sidebar Content</div>}
-          footer={<div>Footer Content</div>}
-          children={<div>Main Content</div>}
-        >
-          <div>Main Content</div>
-        </SidebarRightLayout>
-      );
-    }
+### Basic Usage
+
+```tsx
+function App() {
+  return (
+    <SidebarRightLayout
+      variant="default"
+      mobileBreakpoint="md"
+      sidebarWidth="default"
+      sidebarPosition="right"
+      stickyHeader={true}
+      stickyFooter={false}
+      overlay={true}
+      enableGestures={true}
+      header={<div>Header Content</div>}
+      sidebar={<div>Sidebar Content</div>}
+      footer={<div>Footer Content</div>}
+      children={<div>Main Content</div>}
+    >
+    </SidebarRightLayout>
+  );
+}
 ```
 
 ## Props
