@@ -1,4 +1,17 @@
-import React, { createContext, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
+import React, {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useReducer,
+    useRef,
+    useState,
+    memo,
+    type ReactNode,
+    type KeyboardEvent,
+    type DragEvent,
+} from "react";
 import {
     Calendar,
     Eraser,
@@ -19,16 +32,18 @@ import { Button } from "../../../../components/button";
 import { AnimatedInput as Input } from "../../../../components/input";
 import Textarea from "../../../../components/textarea";
 import { Modal } from "../../../../components/modals";
-import DatePicker from "../../../../components/date-picker";
+import { DatePicker } from "../../../../components/date-picker";
 import {
     Dropdown,
     DropdownItem,
     DropdownLabel,
     DropdownSeparator,
-    DropdownCheckboxItem
+    DropdownCheckboxItem,
 } from "../../../../components/dropdown";
 import { ToastProvider, useToast } from "../../../../components/toast";
 import { ChevronDown, Check } from "lucide-react";
+
+// TYPES
 
 export type Priority = "urgent" | "high" | "medium" | "low";
 
@@ -78,8 +93,9 @@ export interface BoardState {
     priorityFilter: Priority | "all";
 }
 
-const uid = () => Math.random().toString(36).slice(2, 10);
+// SEED / ID UTILS
 
+const uid = () => Math.random().toString(36).slice(2, 10);
 export const newId = uid;
 
 function inDays(n: number): string {
@@ -231,9 +247,7 @@ export function createSeed(): BoardState {
     };
 }
 
-// ─────────────────────────────────────────────────────────────
-// UTILS (utils.ts)
-// ─────────────────────────────────────────────────────────────
+// UTILS
 
 export const LABEL_COLORS: LabelColor[] = [
     "red", "rose", "amber", "emerald", "sky", "violet", "slate",
@@ -338,9 +352,7 @@ export function formatDueDate(iso?: string): {
     return { text, tone };
 }
 
-// ─────────────────────────────────────────────────────────────
-// STORE (store.tsx)
-// ─────────────────────────────────────────────────────────────
+// STORE
 
 type Action =
     | { type: "setSearch"; value: string }
@@ -437,8 +449,7 @@ function reducer(state: BoardState, action: Action): BoardState {
             }
 
             const sourceIds = fromCol.cardIds.filter((id) => id !== action.cardId);
-            const targetIds =
-                fromCol.id === toCol.id ? sourceIds : [...toCol.cardIds];
+            const targetIds = fromCol.id === toCol.id ? sourceIds : [...toCol.cardIds];
 
             const insertAt = Math.min(Math.max(adjustedIndex, 0), targetIds.length);
             targetIds.splice(insertAt, 0, action.cardId);
@@ -458,20 +469,14 @@ function reducer(state: BoardState, action: Action): BoardState {
     }
 }
 
-interface BoardCtx {
-    state: BoardState;
-    dispatch: React.Dispatch<Action>;
-    visibleCardIds: (column: Column) => string[];
-}
+const BoardStateContext = createContext<BoardState | null>(null);
+const BoardDispatchContext = createContext<React.Dispatch<Action> | null>(null);
 
-const BoardContext = createContext<BoardCtx | null>(null);
-
-export function BoardProvider({ children }: { children: ReactNode }) {
-    const [state, dispatch] = useReducer(reducer, undefined, createSeed);
-
-    const value = useMemo<BoardCtx>(() => {
+function useVisibleCardIds(column: Column): string[] {
+    const state = useBoardState();
+    return useMemo(() => {
         const q = state.search.trim().toLowerCase();
-        const matches = (cardId: string) => {
+        return column.cardIds.filter((cardId) => {
             const card = state.cards[cardId];
             if (!card) return false;
             if (state.priorityFilter !== "all" && card.priority !== state.priorityFilter)
@@ -486,26 +491,40 @@ export function BoardProvider({ children }: { children: ReactNode }) {
                 .join(" ")
                 .toLowerCase();
             return hay.includes(q);
-        };
-        return {
-            state,
-            dispatch,
-            visibleCardIds: (column) => column.cardIds.filter(matches),
-        };
-    }, [state]);
-
-    return <BoardContext.Provider value={value}>{children}</BoardContext.Provider>;
+        });
+    }, [state.cards, state.search, state.priorityFilter, column.cardIds]);
 }
 
-export function useBoard() {
-    const ctx = useContext(BoardContext);
-    if (!ctx) throw new Error("useBoard must be used inside BoardProvider");
+export function BoardProvider({ children }: { children: ReactNode }) {
+    const [state, dispatch] = useReducer(reducer, undefined, createSeed);
+    return (
+        <BoardDispatchContext.Provider value={dispatch}>
+            <BoardStateContext.Provider value={state}>
+                {children}
+            </BoardStateContext.Provider>
+        </BoardDispatchContext.Provider>
+    );
+}
+
+function useBoardState(): BoardState {
+    const ctx = useContext(BoardStateContext);
+    if (!ctx) throw new Error("useBoardState must be used inside BoardProvider");
     return ctx;
 }
 
-// ─────────────────────────────────────────────────────────────
-// COMPONENT: AvatarChip (AvatarChip.tsx)
-// ─────────────────────────────────────────────────────────────
+function useBoardDispatch(): React.Dispatch<Action> {
+    const ctx = useContext(BoardDispatchContext);
+    if (!ctx) throw new Error("useBoardDispatch must be used inside BoardProvider");
+    return ctx;
+}
+
+export function useBoard() {
+    const state = useBoardState();
+    const dispatch = useBoardDispatch();
+    return { state, dispatch };
+}
+
+//AvatarChip component
 
 interface AvatarChipProps {
     name: string;
@@ -513,7 +532,7 @@ interface AvatarChipProps {
     className?: string;
 }
 
-function AvatarChip({ name, size = "sm", className }: AvatarChipProps) {
+const AvatarChip = memo(function AvatarChip({ name, size = "sm", className }: AvatarChipProps) {
     const dim = size === "sm" ? "h-6 w-6 text-[10px]" : "h-8 w-8 text-xs";
     return (
         <span
@@ -528,39 +547,54 @@ function AvatarChip({ name, size = "sm", className }: AvatarChipProps) {
             {initials(name)}
         </span>
     );
-}
+});
 
-// ─────────────────────────────────────────────────────────────
-// COMPONENT: BoardCard (BoardCard.tsx)
-// ─────────────────────────────────────────────────────────────
+// BoardCard component
 
 interface BoardCardProps {
     card: Card;
     onOpen: (card: Card) => void;
     isDragging?: boolean;
-    onDragStart?: (e: React.DragEvent) => void;
-    onDragEnd?: (e: React.DragEvent) => void;
-    onDragOver?: (e: React.DragEvent) => void;
+    onDragStart?: (e: DragEvent<HTMLDivElement>) => void;
+    onDragEnd?: (e: DragEvent<HTMLDivElement>) => void;
+    onDragOver?: (e: DragEvent<HTMLDivElement>) => void;
 }
 
-function BoardCard({ card, onOpen, isDragging, onDragStart, onDragEnd, onDragOver }: BoardCardProps) {
+const BoardCard = memo(function BoardCard({
+    card,
+    onOpen,
+    isDragging,
+    onDragStart,
+    onDragEnd,
+    onDragOver,
+}: BoardCardProps) {
     const due = formatDueDate(card.dueDate);
     const prio = priorityMeta[card.priority];
+
+    const handleDragOver = useCallback(
+        (e: DragEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onDragOver?.(e);
+        },
+        [onDragOver]
+    );
+
+    const handleClick = useCallback(
+        (e: React.MouseEvent<HTMLDivElement>) => {
+            if ((e.target as HTMLElement).closest("[data-no-card-open]")) return;
+            onOpen(card);
+        },
+        [card, onOpen]
+    );
 
     return (
         <div
             draggable
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
-            onDragOver={(e: any) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onDragOver?.(e);
-            }}
-            onClick={(e: any) => {
-                if ((e.target as HTMLElement).closest("[data-no-card-open]")) return;
-                onOpen(card);
-            }}
+            onDragOver={handleDragOver}
+            onClick={handleClick}
             className={cn(
                 "group relative cursor-grab active:cursor-grabbing select-none",
                 "rounded-xl bg-card text-card-foreground border border-border/70",
@@ -570,11 +604,9 @@ function BoardCard({ card, onOpen, isDragging, onDragStart, onDragEnd, onDragOve
                 isDragging && "opacity-40"
             )}
         >
-            {/* priority stripe */}
             <span aria-hidden className={cn("absolute inset-y-0 left-0 w-1", prio.bar)} />
 
             <div className="pl-4 pr-3.5 py-3.5 pointer-events-none">
-                {/* labels */}
                 {card.labels.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-2 pointer-events-auto">
                         {card.labels.map((l) => (
@@ -648,11 +680,9 @@ function BoardCard({ card, onOpen, isDragging, onDragStart, onDragEnd, onDragOve
             </div>
         </div>
     );
-}
+});
 
-// ─────────────────────────────────────────────────────────────
-// COMPONENT: CardModal (CardModal.tsx)
-// ─────────────────────────────────────────────────────────────
+// CardModal component
 
 interface CardModalProps {
     open: boolean;
@@ -665,7 +695,7 @@ interface CardModalProps {
 const PRIORITIES_LIST: Priority[] = ["urgent", "high", "medium", "low"];
 
 function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps) {
-    const { dispatch } = useBoard();
+    const dispatch = useBoardDispatch();
 
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -673,20 +703,26 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
     const [labels, setLabels] = useState<Label[]>([]);
     const [assignees, setAssignees] = useState<Assignee[]>([]);
     const [dueDate, setDueDate] = useState<Date | undefined>();
-
     const [labelDraft, setLabelDraft] = useState("");
     const [labelColor, setLabelColor] = useState<LabelColor>("rose");
     const [assigneeDraft, setAssigneeDraft] = useState("");
 
+    const modeRef = useRef(mode);
+    const cardRef = useRef(card);
+    modeRef.current = mode;
+    cardRef.current = card;
+
     useEffect(() => {
         if (!open) return;
-        if (mode === "edit" && card) {
-            setTitle(card.title);
-            setDescription(card.description ?? "");
-            setPriority(card.priority);
-            setLabels(card.labels);
-            setAssignees(card.assignees);
-            setDueDate(card.dueDate ? new Date(card.dueDate) : undefined);
+        const m = modeRef.current;
+        const c = cardRef.current;
+        if (m === "edit" && c) {
+            setTitle(c.title);
+            setDescription(c.description ?? "");
+            setPriority(c.priority);
+            setLabels(c.labels);
+            setAssignees(c.assignees);
+            setDueDate(c.dueDate ? new Date(c.dueDate) : undefined);
         } else {
             setTitle("");
             setDescription("");
@@ -698,25 +734,33 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
         setLabelDraft("");
         setLabelColor("rose");
         setAssigneeDraft("");
-    }, [open, mode, card]);
+    }, [open]);
 
-    const addLabel = () => {
+    const addLabel = useCallback(() => {
         const name = labelDraft.trim();
         if (!name) return;
         setLabels((s) => [...s, { id: newId(), name, color: labelColor }]);
         setLabelDraft("");
-    };
-    const removeLabel = (id: string) => setLabels((s) => s.filter((l) => l.id !== id));
+    }, [labelDraft, labelColor]);
 
-    const addAssignee = () => {
+    const removeLabel = useCallback(
+        (id: string) => setLabels((s) => s.filter((l) => l.id !== id)),
+        []
+    );
+
+    const addAssignee = useCallback(() => {
         const name = assigneeDraft.trim();
         if (!name) return;
         setAssignees((s) => [...s, { id: newId(), name }]);
         setAssigneeDraft("");
-    };
-    const removeAssignee = (id: string) => setAssignees((s) => s.filter((a) => a.id !== id));
+    }, [assigneeDraft]);
 
-    const handleSave = () => {
+    const removeAssignee = useCallback(
+        (id: string) => setAssignees((s) => s.filter((a) => a.id !== id)),
+        []
+    );
+
+    const handleSave = useCallback(() => {
         const t = title.trim();
         if (!t) return;
         const payload = {
@@ -735,28 +779,48 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
             dispatch({ type: "addCard", columnId, card: payload });
         }
         onOpenChange(false);
-    };
+    }, [title, description, priority, labels, assignees, dueDate, card, mode, columnId, dispatch, onOpenChange]);
 
-    const onDeleteCard = (cardId: string) => {
-        dispatch({ type: "deleteCard", cardId });
-    };
+    const handleDeleteCard = useCallback(() => {
+        if (!card) return;
+        if (window.confirm("Delete this card?")) {
+            dispatch({ type: "deleteCard", cardId: card.id });
+            onOpenChange(false);
+        }
+    }, [card, dispatch, onOpenChange]);
+
+    const handleClose = useCallback(() => onOpenChange(false), [onOpenChange]);
+
+    const handleLabelKeyDown = useCallback(
+        (e: KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === "Enter") { e.preventDefault(); addLabel(); }
+        },
+        [addLabel]
+    );
+
+    const handleAssigneeKeyDown = useCallback(
+        (e: KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === "Enter") { e.preventDefault(); addAssignee(); }
+        },
+        [addAssignee]
+    );
 
     return (
         <Modal
             isOpen={open}
-            onClose={() => onOpenChange(false)}
-            size="xl"
+            onClose={handleClose}
+            size="2xl"
             title={mode === "create" ? "Create New Card" : "Edit Card"}
             showFooter={false}
         >
             <div className="space-y-6 py-2">
-                <p className="text-sm text-muted-foreground -mt-4 mb-4">
+                <p className="text-sm text-muted-foreground/80 -mt-4 mb-4">
                     {mode === "create" ? "Add a new card to your board." : "View and edit card details."}
                 </p>
 
                 <div className="space-y-4">
                     <div className="space-y-1.5">
-                        <label htmlFor="card-title" className="text-sm font-medium leading-none">Title</label>
+                        <label htmlFor="card-title" className="text-sm font-medium leading-none text-foreground/90">Title</label>
                         <Input
                             id="card-title"
                             variant="clean"
@@ -768,7 +832,7 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                     </div>
 
                     <div className="space-y-1.5">
-                        <label htmlFor="card-desc" className="text-sm font-medium leading-none">Description</label>
+                        <label htmlFor="card-desc" className="text-sm font-medium leading-none text-foreground/90">Description</label>
                         <Textarea
                             id="card-desc"
                             variant="clean"
@@ -781,10 +845,10 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium leading-none">Priority</label>
+                            <label className="text-sm font-medium leading-none text-foreground/90">Priority</label>
                             <Dropdown
                                 trigger={
-                                    <Button variant="outline" className="w-full justify-between h-11 px-4 rounded-xl border-input bg-background hover:bg-background/80">
+                                    <Button variant="outline" size="sm" className="w-full justify-between h-9 px-3 rounded-xl bg-background hover:bg-background/80 shadow-sm text-foreground">
                                         <span className="inline-flex items-center gap-2">
                                             <span className={cn("h-2 w-2 rounded-full", priorityMeta[priority].bar)} />
                                             {priorityMeta[priority].label}
@@ -813,7 +877,7 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium leading-none">Due date</label>
+                            <label className="text-sm font-medium leading-none text-foreground/90">Due date</label>
                             <DatePicker
                                 value={dueDate}
                                 onChange={(date) => setDueDate(date as Date)}
@@ -822,7 +886,7 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                                 placeholder="Pick a date"
                                 className="w-full"
                                 inputClassName={cn(
-                                    "w-full justify-start font-normal !h-9 !rounded-md",
+                                    "w-full justify-start font-normal",
                                     !dueDate && "text-muted-foreground"
                                 )}
                                 calendarClassName="bg-background border shadow-xl"
@@ -830,11 +894,12 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                         </div>
                     </div>
 
+                    {/* Labels */}
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium leading-none">Labels</label>
+                        <label className="text-sm font-medium leading-none text-foreground/90">Labels</label>
                         <div className="flex flex-wrap gap-1.5 min-h-6">
                             {labels.length === 0 && (
-                                <span className="text-[12.5px] text-muted-foreground">No labels yet.</span>
+                                <span className="text-[12.5px] text-muted-foreground/80">No labels yet.</span>
                             )}
                             {labels.map((l) => (
                                 <span
@@ -860,18 +925,13 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                                 value={labelDraft}
                                 onChange={setLabelDraft}
                                 variant="clean"
-                                onKeyDown={(e: any) => {
-                                    if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        addLabel();
-                                    }
-                                }}
+                                onKeyDown={handleLabelKeyDown}
                                 placeholder=""
-                                className="flex-1"
+                                className="flex-1 !h-5"
                             />
                             <Dropdown
                                 trigger={
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 border border-border/60">
                                         <Plus className="h-4 w-4" />
                                     </Button>
                                 }
@@ -898,11 +958,12 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                         </div>
                     </div>
 
+                    {/* Assignees */}
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium leading-none">Assignees</label>
+                        <label className="text-sm font-medium leading-none text-foreground/90">Assignees</label>
                         <div className="flex flex-wrap gap-1.5 min-h-6">
                             {assignees.length === 0 && (
-                                <span className="text-[12.5px] text-muted-foreground">No one assigned.</span>
+                                <span className="text-[12.5px] text-muted-foreground/80">No one assigned.</span>
                             )}
                             {assignees.map((a) => (
                                 <span
@@ -924,12 +985,7 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                             value={assigneeDraft}
                             onChange={setAssigneeDraft}
                             variant="clean"
-                            onKeyDown={(e: any) => {
-                                if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    addAssignee();
-                                }
-                            }}
+                            onKeyDown={handleAssigneeKeyDown}
                             placeholder=""
                         />
                     </div>
@@ -941,12 +997,7 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                             variant="ghost"
                             size="sm"
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => {
-                                if (confirm("Delete this card?")) {
-                                    onDeleteCard?.(card!.id);
-                                    onOpenChange(false);
-                                }
-                            }}
+                            onClick={handleDeleteCard}
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete Card
@@ -955,10 +1006,10 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                         <div />
                     )}
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+                        <Button variant="ghost" size="sm" onClick={handleClose}>
                             Cancel
                         </Button>
-                        <Button size="sm" onClick={handleSave}>
+                        <Button size="sm" onClick={handleSave} disabled={!title.trim()}>
                             {mode === "create" ? "Create Card" : "Save Changes"}
                         </Button>
                     </div>
@@ -968,24 +1019,20 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
     );
 }
 
-// ─────────────────────────────────────────────────────────────
-// COMPONENT: BoardColumn (BoardColumn.tsx)
-// ─────────────────────────────────────────────────────────────
-
 interface BoardColumnProps {
     column: Column;
     onAddCard: (columnId: string) => void;
     onOpenCard: (card: Card) => void;
     activeCardId: string | null;
     dropTarget: { columnId: string; index: number } | null;
-    onDragStartCard: (e: React.DragEvent, cardId: string) => void;
-    onDragEndCard: (e: React.DragEvent) => void;
-    onDragOverColumn: (e: React.DragEvent) => void;
-    onDragOverCard: (e: React.DragEvent, index: number) => void;
-    onDrop: (e: React.DragEvent) => void;
+    onDragStartCard: (e: DragEvent<HTMLDivElement>, cardId: string) => void;
+    onDragEndCard: (e: DragEvent<HTMLDivElement>) => void;
+    onDragOverColumn: (e: DragEvent<HTMLDivElement>) => void;
+    onDragOverCard: (e: DragEvent<HTMLDivElement>, index: number) => void;
+    onDrop: (e: DragEvent<HTMLDivElement>) => void;
 }
 
-function BoardColumn({
+const BoardColumn = memo(function BoardColumn({
     column,
     onAddCard,
     onOpenCard,
@@ -995,28 +1042,51 @@ function BoardColumn({
     onDragEndCard,
     onDragOverColumn,
     onDragOverCard,
-    onDrop
+    onDrop,
 }: BoardColumnProps) {
-    const { state, dispatch, visibleCardIds } = useBoard();
+    const state = useBoardState();
+    const dispatch = useBoardDispatch();
+    const visible = useVisibleCardIds(column);
+
     const [renaming, setRenaming] = useState(false);
     const [draftTitle, setDraftTitle] = useState(column.title);
     const [confirmDelete, setConfirmDelete] = useState(false);
 
-    const visible = visibleCardIds(column);
     const totalCount = column.cardIds.length;
     const visibleCount = visible.length;
     const filtered = visibleCount !== totalCount;
 
-    const commitRename = () => {
+    const commitRename = useCallback(() => {
         const t = draftTitle.trim();
         if (t) dispatch({ type: "renameColumn", columnId: column.id, title: t });
         setRenaming(false);
-    };
+    }, [draftTitle, column.id, dispatch]);
 
-    const confirmDeleteColumn = () => {
+    const handleRenameKeyDown = useCallback(
+        (e: KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === "Enter") commitRename();
+            if (e.key === "Escape") {
+                setDraftTitle(column.title);
+                setRenaming(false);
+            }
+        },
+        [commitRename, column.title]
+    );
+
+    const confirmDeleteColumn = useCallback(() => {
         dispatch({ type: "deleteColumn", columnId: column.id });
         setConfirmDelete(false);
-    }
+    }, [column.id, dispatch]);
+
+    const handleClearColumn = useCallback(
+        () => dispatch({ type: "clearColumn", columnId: column.id }),
+        [column.id, dispatch]
+    );
+
+    const handleAddCard = useCallback(
+        () => onAddCard(column.id),
+        [column.id, onAddCard]
+    );
 
     const isDropTargetColumn = dropTarget?.columnId === column.id;
 
@@ -1041,19 +1111,13 @@ function BoardColumn({
                             variant="clean"
                             placeholder="Column title"
                             onBlur={commitRename}
-                            onKeyDown={(e: any) => {
-                                if (e.key === "Enter") commitRename();
-                                if (e.key === "Escape") {
-                                    setDraftTitle(column.title);
-                                    setRenaming(false);
-                                }
-                            }}
+                            onKeyDown={handleRenameKeyDown}
                             className="h-7 px-2 py-1 text-sm font-display font-semibold"
                         />
                     ) : (
                         <button
                             onDoubleClick={() => setRenaming(true)}
-                            className="font-display font-semibold text-[14px] tracking-tight truncate"
+                            className="font-display font-semibold text-[14px] tracking-tight truncate text-foreground"
                             title="Double-click to rename"
                         >
                             {column.title}
@@ -1062,7 +1126,7 @@ function BoardColumn({
                     <span
                         className={cn(
                             "inline-flex items-center justify-center rounded-md px-1.5 h-5 min-w-[22px] text-[11px] font-semibold",
-                            "bg-muted text-muted-foreground tabular-nums"
+                            "bg-muted text-primary tabular-nums"
                         )}
                     >
                         {filtered ? `${visibleCount}/${totalCount}` : totalCount}
@@ -1081,7 +1145,7 @@ function BoardColumn({
                         <Pencil className="h-4 w-4 mr-2" /> Rename
                     </DropdownItem>
                     <DropdownItem
-                        onClick={() => dispatch({ type: "clearColumn", columnId: column.id })}
+                        onClick={handleClearColumn}
                         disabled={totalCount === 0}
                     >
                         <Eraser className="h-4 w-4 mr-2" /> Clear cards
@@ -1109,7 +1173,7 @@ function BoardColumn({
                     const card = state.cards[id];
                     if (!card) return null;
 
-                    const showIndicatorBefore = isDropTargetColumn && dropTarget.index === index;
+                    const showIndicatorBefore = isDropTargetColumn && dropTarget!.index === index;
 
                     return (
                         <React.Fragment key={id}>
@@ -1120,15 +1184,15 @@ function BoardColumn({
                                 card={card}
                                 onOpen={onOpenCard}
                                 isDragging={activeCardId === id}
-                                onDragStart={(e: any) => onDragStartCard(e, id)}
+                                onDragStart={(e) => onDragStartCard(e, id)}
                                 onDragEnd={onDragEndCard}
-                                onDragOver={(e: any) => onDragOverCard(e, index)}
+                                onDragOver={(e) => onDragOverCard(e, index)}
                             />
                         </React.Fragment>
                     );
                 })}
 
-                {isDropTargetColumn && dropTarget.index === visible.length && (
+                {isDropTargetColumn && dropTarget!.index === visible.length && (
                     <div className="h-1 bg-primary rounded-full w-full my-1 animate-in fade-in" />
                 )}
 
@@ -1146,11 +1210,11 @@ function BoardColumn({
                 )}
             </div>
 
-            {/* Footer add-card */}
+            {/* Footer */}
             <div className="p-2 pt-1">
                 <Button
                     variant="ghost"
-                    onClick={() => onAddCard(column.id)}
+                    onClick={handleAddCard}
                     className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-muted/70 font-medium"
                 >
                     <Plus className="h-4 w-4 mr-1.5" /> Add card
@@ -1174,26 +1238,32 @@ function BoardColumn({
             </Modal>
         </div>
     );
-}
+});
 
-// ─────────────────────────────────────────────────────────────
-// COMPONENT: AddColumnComposer (AddColumnComposer.tsx)
-// ─────────────────────────────────────────────────────────────
+// AddColumnComposer component
 
 function AddColumnComposer() {
-    const { dispatch } = useBoard();
+    const dispatch = useBoardDispatch();
     const [open, setOpen] = useState(false);
     const [title, setTitle] = useState("");
     const [accent, setAccent] = useState<LabelColor>("rose");
 
-    const submit = () => {
+    const submit = useCallback(() => {
         const t = title.trim();
         if (!t) return;
         dispatch({ type: "addColumn", title: t, accent });
         setTitle("");
         setAccent("rose");
         setOpen(false);
-    };
+    }, [title, accent, dispatch]);
+
+    const handleKeyDown = useCallback(
+        (e: KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === "Enter") submit();
+            if (e.key === "Escape") setOpen(false);
+        },
+        [submit]
+    );
 
     if (!open) {
         return (
@@ -1230,10 +1300,7 @@ function AddColumnComposer() {
                 value={title}
                 onChange={setTitle}
                 variant="clean"
-                onKeyDown={(e: any) => {
-                    if (e.key === "Enter") submit();
-                    if (e.key === "Escape") setOpen(false);
-                }}
+                onKeyDown={handleKeyDown}
             />
             <div>
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1.5">
@@ -1265,87 +1332,109 @@ function AddColumnComposer() {
     );
 }
 
-// ─────────────────────────────────────────────────────────────
-// PAGE: KanbanBoard (Index.tsx — BoardInner + default export)
-// ─────────────────────────────────────────────────────────────
+// KanbanBoard page
+
+type ModalState =
+    | { open: false }
+    | { open: true; mode: "create"; columnId: string }
+    | { open: true; mode: "edit"; card: Card };
 
 const PRIORITIES_FILTER: Priority[] = ["urgent", "high", "medium", "low"];
 
 function BoardInner() {
-    const { state, dispatch, visibleCardIds } = useBoard();
+    const state = useBoardState();
+    const dispatch = useBoardDispatch();
     const toast = useToast();
 
     const [activeCardId, setActiveCardId] = useState<string | null>(null);
     const [dropTarget, setDropTarget] = useState<{ columnId: string; index: number } | null>(null);
-    const [modal, setModal] = useState<
-        | { open: false }
-        | { open: true; mode: "create"; columnId: string }
-        | { open: true; mode: "edit"; card: Card }
-    >({ open: false });
+    const [modal, setModal] = useState<ModalState>({ open: false });
 
     const totalCards = useMemo(() => Object.keys(state.cards).length, [state.cards]);
 
-    const handleDragStart = (e: React.DragEvent, cardId: string) => {
+    const handleDragStart = useCallback((e: DragEvent<HTMLDivElement>, cardId: string) => {
         e.dataTransfer.setData("application/json", JSON.stringify({ cardId }));
         e.dataTransfer.effectAllowed = "move";
         setTimeout(() => setActiveCardId(cardId), 0);
-    };
+    }, []);
 
-    const handleDragEnd = (_e: React.DragEvent) => {
+    const handleDragEnd = useCallback((_e: DragEvent<HTMLDivElement>) => {
         setActiveCardId(null);
         setDropTarget(null);
-    };
+    }, []);
 
-    const handleDragOverColumn = (e: React.DragEvent, columnId: string) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
+    const handleDragOverColumn = useCallback(
+        (e: DragEvent<HTMLDivElement>, columnId: string) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            const col = state.columns.find((c) => c.id === columnId);
+            if (!col) return;
+            setDropTarget((prev) => {
+                const next = { columnId, index: col.cardIds.length };
+                if (prev?.columnId === next.columnId && prev?.index === next.index) return prev;
+                return next;
+            });
+        },
+        [state.columns]
+    );
 
-        const col = state.columns.find(c => c.id === columnId);
-        if (!col) return;
+    const handleDragOverCard = useCallback(
+        (e: DragEvent<HTMLDivElement>, columnId: string, index: number) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = "move";
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            const isTopHalf = e.clientY < rect.top + rect.height / 2;
+            const nextIndex = isTopHalf ? index : index + 1;
+            setDropTarget((prev) => {
+                if (prev?.columnId === columnId && prev?.index === nextIndex) return prev;
+                return { columnId, index: nextIndex };
+            });
+        },
+        []
+    );
 
-        const visibleCount = visibleCardIds(col).length;
-        setDropTarget({ columnId, index: visibleCount });
-    };
-
-    const handleDragOverCard = (e: React.DragEvent, columnId: string, index: number) => {
-        e.preventDefault();
-        e.stopPropagation();
-        e.dataTransfer.dropEffect = "move";
-
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        const isTopHalf = e.clientY < rect.top + rect.height / 2;
-        setDropTarget({
-            columnId,
-            index: isTopHalf ? index : index + 1
-        });
-    };
-
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-
-        const target = dropTarget;
-        setActiveCardId(null);
-        setDropTarget(null);
-
-        const dataStr = e.dataTransfer.getData("application/json");
-        if (!dataStr || !target) return;
-
-        try {
-            const { cardId } = JSON.parse(dataStr);
-            if (cardId) {
-                dispatch({
-                    type: "moveCard",
-                    cardId,
-                    toColumnId: target.columnId,
-                    toIndex: target.index
-                });
+    const handleDrop = useCallback(
+        (e: DragEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            const target = dropTarget;
+            setActiveCardId(null);
+            setDropTarget(null);
+            const dataStr = e.dataTransfer.getData("application/json");
+            if (!dataStr || !target) return;
+            try {
+                const { cardId } = JSON.parse(dataStr) as { cardId: string };
+                if (cardId) {
+                    dispatch({ type: "moveCard", cardId, toColumnId: target.columnId, toIndex: target.index });
+                }
+            } catch {
+                toast.error("Failed to move card: invalid data format");
             }
-        } catch (err) {
-            toast.error("Failed to move card: invalid data format");
-        }
-    };
+        },
+        [dropTarget, dispatch, toast]
+    );
 
-    const closeModal = () => setModal({ open: false });
+    const closeModal = useCallback(() => setModal({ open: false }), []);
+
+    const handleSearchChange = useCallback(
+        (v: string) => dispatch({ type: "setSearch", value: v }),
+        [dispatch]
+    );
+
+    const handleClearSearch = useCallback(
+        () => dispatch({ type: "setSearch", value: "" }),
+        [dispatch]
+    );
+
+    const makeColumnHandlers = useCallback(
+        (columnId: string) => ({
+            onDragOverColumn: (e: DragEvent<HTMLDivElement>) => handleDragOverColumn(e, columnId),
+            onDragOverCard: (e: DragEvent<HTMLDivElement>, index: number) => handleDragOverCard(e, columnId, index),
+            onAddCard: (cid: string) => setModal({ open: true, mode: "create", columnId: cid }),
+            onOpenCard: (card: Card) => setModal({ open: true, mode: "edit", card }),
+        }),
+        [handleDragOverColumn, handleDragOverCard]
+    );
 
     return (
         <div className="flex h-screen flex-col bg-gradient-board">
@@ -1354,12 +1443,12 @@ function BoardInner() {
                 <div className="flex items-center gap-2.5 mr-2">
                     <div className="h-9 w-9 rounded-xl bg-gradient-brand grid place-items-center shadow-card">
                         <LayoutGrid
-                            className="h-4.5 w-4.5 text-primary-foreground"
+                            className="h-4.5 w-4.5 text-primary"
                             strokeWidth={2.5}
                         />
                     </div>
                     <div className="min-w-0">
-                        <h1 className="font-display font-bold text-[17px] leading-tight tracking-tight">
+                        <h1 className="font-display font-bold text-[17px] leading-none text-foreground">
                             Kanban Board
                         </h1>
                         <p className="text-[11.5px] text-muted-foreground -mt-0.5">
@@ -1371,17 +1460,19 @@ function BoardInner() {
                 <div className="flex-1 min-w-[200px]" />
 
                 <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         value={state.search}
-                        onChange={(v: string) => dispatch({ type: "setSearch", value: v })}
+                        onChange={handleSearchChange}
                         placeholder="Search cards…"
                         variant="clean"
-                        className="pl-8 pr-8 h-9 w-[240px]"
+                        size="sm"
+                        icon={Search}
+                        className="w-[400px] mb-0"
+                        inputClassName="pr-8"
                     />
                     {state.search && (
                         <button
-                            onClick={() => dispatch({ type: "setSearch", value: "" })}
+                            onClick={handleClearSearch}
                             className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                             aria-label="Clear search"
                         >
@@ -1392,7 +1483,7 @@ function BoardInner() {
 
                 <Dropdown
                     trigger={
-                        <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                        <Button variant="outline" size="sm" className="h-9 gap-1.5 text-foreground">
                             <Filter className="h-4 w-4" />
                             {state.priorityFilter === "all"
                                 ? "Priority"
@@ -1430,23 +1521,25 @@ function BoardInner() {
             {/* Board */}
             <main className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden scrollbar-thin">
                 <div className="flex h-full items-start gap-4 px-5 lg:px-8 py-5 min-w-max">
-                    {state.columns.map((column) => (
-                        <BoardColumn
-                            key={column.id}
-                            column={column}
-                            onAddCard={(columnId) =>
-                                setModal({ open: true, mode: "create", columnId })
-                            }
-                            onOpenCard={(card) => setModal({ open: true, mode: "edit", card })}
-                            activeCardId={activeCardId}
-                            dropTarget={dropTarget}
-                            onDragStartCard={handleDragStart}
-                            onDragEndCard={handleDragEnd}
-                            onDragOverColumn={(e: any) => handleDragOverColumn(e, column.id)}
-                            onDragOverCard={(e, index) => handleDragOverCard(e, column.id, index)}
-                            onDrop={handleDrop}
-                        />
-                    ))}
+                    {state.columns.map((column) => {
+                        const { onDragOverColumn, onDragOverCard, onAddCard, onOpenCard } =
+                            makeColumnHandlers(column.id);
+                        return (
+                            <BoardColumn
+                                key={column.id}
+                                column={column}
+                                onAddCard={onAddCard}
+                                onOpenCard={onOpenCard}
+                                activeCardId={activeCardId}
+                                dropTarget={dropTarget}
+                                onDragStartCard={handleDragStart}
+                                onDragEndCard={handleDragEnd}
+                                onDragOverColumn={onDragOverColumn}
+                                onDragOverCard={onDragOverCard}
+                                onDrop={handleDrop}
+                            />
+                        );
+                    })}
                     <AddColumnComposer />
                 </div>
             </main>

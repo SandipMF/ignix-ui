@@ -208,7 +208,8 @@ export const AnimatedInput: React.FC<AnimatedInputProps> = ({
       {/* Enhanced Label */}
       <motion.label
         className={cn(
-          "absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-300 z-10 origin-left",
+          "absolute top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-300 z-10 origin-left",
+          Icon ? "left-9" : "left-4",
           "text-muted-foreground group-focus-within:text-primary",
           error && "text-red-500",
           success && "text-emerald-500",
@@ -260,7 +261,7 @@ export const AnimatedInput: React.FC<AnimatedInputProps> = ({
             sizeConfig[size].input,
 
             // Icon padding
-            Icon && "pl-10",
+            Icon && "pl-9",
             (showPasswordToggle || error || success) && "pr-10",
 
             // Status variants
