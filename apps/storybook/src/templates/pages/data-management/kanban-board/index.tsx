@@ -519,10 +519,34 @@ function useBoardDispatch(): React.Dispatch<Action> {
     return ctx;
 }
 
-export function useBoard() {
+function useBoard() {
     const state = useBoardState();
     const dispatch = useBoardDispatch();
     return { state, dispatch };
+}
+
+// SkeletonCard
+function SkeletonCard() {
+    return (
+        <div className="relative rounded-xl bg-card border border-border/70 overflow-hidden">
+            <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-muted animate-pulse" />
+            <div className="pl-4 pr-3.5 py-3.5 space-y-2">
+                {/* label pills */}
+                <div className="flex gap-1.5">
+                    <div className="h-[18px] w-14 rounded-md bg-muted animate-pulse" />
+                    <div className="h-[18px] w-10 rounded-md bg-muted animate-pulse" />
+                </div>
+                {/* title */}
+                <div className="h-3.5 w-full rounded bg-muted animate-pulse" />
+                <div className="h-3.5 w-3/4 rounded bg-muted animate-pulse" />
+                {/* footer */}
+                <div className="flex items-center justify-between pt-1">
+                    <div className="h-5 w-20 rounded-md bg-muted animate-pulse" />
+                    <div className="h-6 w-6 rounded-full bg-muted animate-pulse" />
+                </div>
+            </div>
+        </div>
+    );
 }
 
 //AvatarChip component
@@ -683,8 +707,73 @@ const BoardCard = memo(function BoardCard({
     );
 });
 
-// CardModal component
+// SkeletonColumn — mirrors the column shell exactly
+function SkeletonColumn({ cardCount = 3 }: { cardCount?: number }) {
+    return (
+        <div className="flex h-full w-[320px] shrink-0 flex-col rounded-2xl border border-border/70 bg-board-column">
+            {/* header */}
+            <div className="flex items-center gap-2 px-3.5 pt-3 pb-2">
+                <div className="h-2.5 w-2.5 rounded-full bg-muted animate-pulse shrink-0" />
+                <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+                <div className="ml-auto h-5 w-6 rounded-md bg-muted animate-pulse" />
+            </div>
+            {/* cards */}
+            <div className="flex-1 min-h-0 overflow-hidden px-2.5 pb-2 space-y-2">
+                {Array.from({ length: cardCount }).map((_, i) => (
+                    <SkeletonCard key={i} />
+                ))}
+            </div>
+            {/* footer add button */}
+            <div className="p-2 pt-1">
+                <div className="h-9 w-full rounded-lg bg-muted animate-pulse opacity-50" />
+            </div>
+        </div>
+    );
+}
 
+
+export function BoardSkeleton() {
+    return (
+        <div className="flex h-screen flex-col bg-gradient-board">
+            {/* mirrors the real header */}
+            <header className="flex items-center gap-3 px-5 lg:px-8 py-4 border-b border-border/60 bg-background/70 backdrop-blur-sm">
+                <div className="h-9 w-9 rounded-xl bg-muted animate-pulse" />
+                <div className="space-y-1.5">
+                    <div className="h-4 w-28 rounded bg-muted animate-pulse" />
+                    <div className="h-3 w-20 rounded bg-muted animate-pulse" />
+                </div>
+                <div className="flex-1" />
+                <div className="h-9 w-[400px] rounded-xl bg-muted animate-pulse" />
+                <div className="h-9 w-24 rounded-lg bg-muted animate-pulse" />
+            </header>
+
+            {/* columns */}
+            <main className="flex-1 min-h-0 overflow-hidden">
+                <div className="flex h-full items-start gap-4 px-5 lg:px-8 py-5">
+                    <SkeletonColumn cardCount={4} />
+                    <SkeletonColumn cardCount={2} />
+                    <SkeletonColumn cardCount={3} />
+                </div>
+            </main>
+        </div>
+    );
+}
+
+function HydratedBoard() {
+    const [isHydrated, setIsHydrated] = useState(false);
+
+    useEffect(() => {
+        // One rAF keeps the skeleton visible for a full paint cycle,
+        // preventing any white flash even on fast machines.
+        const id = requestAnimationFrame(() => setIsHydrated(true));
+        return () => cancelAnimationFrame(id);
+    }, []);
+
+    if (!isHydrated) return <BoardSkeleton />;
+    return <BoardInner />;
+}
+
+// CardModal component
 interface CardModalProps {
     open: boolean;
     onOpenChange: (v: boolean) => void;
@@ -1065,8 +1154,7 @@ const BoardColumn = memo(function BoardColumn({
     onDragOverCard,
     onDrop,
 }: BoardColumnProps) {
-    const state = useBoardState();
-    const dispatch = useBoardDispatch();
+    const { state, dispatch } = useBoard();
     const visible = useVisibleCardIds(column);
 
     const [renaming, setRenaming] = useState(false);
@@ -1353,7 +1441,7 @@ function AddColumnComposer() {
     );
 }
 
-// KanbanBoard page
+// Kanban page
 
 type ModalState =
     | { open: false }
@@ -1363,8 +1451,7 @@ type ModalState =
 const PRIORITIES_FILTER: Priority[] = ["urgent", "high", "medium", "low"];
 
 function BoardInner() {
-    const state = useBoardState();
-    const dispatch = useBoardDispatch();
+    const { state, dispatch } = useBoard();
     const toast = useToast();
 
     const [activeCardId, setActiveCardId] = useState<string | null>(null);
@@ -1576,12 +1663,10 @@ function BoardInner() {
     );
 }
 
-const KanbanBoard = () => (
+export const KanbanBoard = () => (
     <ToastProvider>
         <BoardProvider>
-            <BoardInner />
+            <HydratedBoard />
         </BoardProvider>
     </ToastProvider>
 );
-
-export default KanbanBoard;
