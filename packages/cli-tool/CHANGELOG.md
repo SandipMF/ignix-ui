@@ -1,5 +1,11 @@
 # @mindfiredigital/ignix-cli
 
+## 3.0.0
+
+### Major Changes
+
+- Update README to clarify scaffolding script usage
+
 ## 2.1.6
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 # Ignix CLI
 
-[![NPM Version](https://img.shields.io/npm/v/ignix-cli.svg)](https://www.npmjs.com/package/@mindfiredigital/ignix-cli)
-[![License](https://img.shields.io/npm/l/ignix-cli.svg)](https://github.com/mindfiredigital/ignix-ui/blob/main/LICENSE)
+[![NPM Version](https://img.shields.io/npm/v/@mindfiredigital/ignix-cli.svg)](https://www.npmjs.com/package/@mindfiredigital/ignix-cli)
+[![License](https://img.shields.io/npm/l/@mindfiredigital/ignix-cli.svg)](https://www.npmjs.com/package/@mindfiredigital/ignix-cli)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](../../CONTRIBUTING.md)
 
 The Ignix CLI is a powerful command-line tool that helps you quickly scaffold, manage, and interact with Ignix components and themes in your projects. It provides both interactive and command-based interfaces for seamless development.
@@ -11,13 +11,13 @@ The Ignix CLI is a powerful command-line tool that helps you quickly scaffold, m
 Install the CLI globally using npm or yarn:
 
 ```bash
-npm install -g ignix-cli
+npm install -g @mindfiredigital/ignix-cli
 ```
 
 Or use it directly with npx:
 
 ```bash
-npx ignix-cli
+npx @mindfiredigital/ignix-cli
 ```
 
 ## Usage Modes
@@ -163,7 +163,7 @@ The CLI uses an `ignix.config.js` file in your project root for configuration.
 
 ```javascript
 /* eslint-env node */
-/** @type {import('ignix-cli').IgnixConfig} */
+/** @type {import('@mindfiredigital/ignix-cli').IgnixConfig} */
 module.exports = {
   // URL to the raw registry.json file on GitHub
   registryUrl:
