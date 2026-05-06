@@ -161,3 +161,24 @@ export const DropdownCheckboxItem = ({
     {children}
   </DropdownMenu.CheckboxItem>
 );
+
+export const DropdownLabel = ({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DropdownMenu.Label>) => (
+  <DropdownMenu.Label
+    className={cn("px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground", className)}
+    {...props}
+  />
+);
+
+export const DropdownSeparator = ({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DropdownMenu.Separator>) => (
+  <DropdownMenu.Separator
+    className={cn("-mx-2 my-2 h-px bg-border/50", className)}
+    {...props}
+  />
+);
+
