@@ -1628,7 +1628,7 @@ function BoardInner() {
 
             {/* Board */}
             <main className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden scrollbar-thin">
-                <div className="flex h-full items-start gap-4 px-5 lg:px-8 py-5 min-w-max">
+                <ul role="list" aria-label="Board columns" className="flex h-full items-start gap-4 px-5 lg:px-8 py-5 min-w-max">
                     {state.columns.map((column) => {
                         const { onDragOverColumn, onDragOverCard, onAddCard, onOpenCard } =
                             makeColumnHandlers(column.id);
@@ -1649,7 +1649,7 @@ function BoardInner() {
                         );
                     })}
                     <AddColumnComposer />
-                </div>
+                </ul>
             </main>
 
             <CardModal
