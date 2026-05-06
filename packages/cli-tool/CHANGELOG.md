@@ -1,5 +1,11 @@
 # @mindfiredigital/ignix-cli
 
+## 3.0.1
+
+### Patch Changes
+
+- Merge pull request #825 from mindfiredigital/development
+
 ## 3.0.0
 
 ### Major Changes
