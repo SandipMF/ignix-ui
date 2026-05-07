@@ -27,7 +27,7 @@ import {
     X,
 } from "lucide-react";
 
-import { cn } from "packages/utils/cn";
+import { cn } from "../../../../utils/cn";
 import { Button } from "@ignix-ui/button";
 import { AnimatedInput as Input } from "@ignix-ui/input";
 import Textarea from "@ignix-ui/textarea";
