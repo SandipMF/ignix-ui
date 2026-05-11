@@ -1405,7 +1405,7 @@ function AddColumnComposer() {
             </div>
             <Input
                 autoFocus
-                placeholder="Column title"
+                placeholder=""
                 value={title}
                 onChange={setTitle}
                 variant="clean"

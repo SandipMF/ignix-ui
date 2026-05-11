@@ -1,3 +1,30 @@
+---
+sidebar_position: 3
+title: Kanban Board
+description: A fully interactive Kanban board with drag-and-drop columns, card management, priority filtering, full-text search, labels, assignees, due-date tracking, file attachments, and toast notifications.
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import { KanbanBoardDemo } from '@site/src/components/Demo/KanbanBoardDemo';
+import CodeBlock from '@theme/CodeBlock';
+
+The **KanbanBoard** component delivers a complete project management experience out of the box. It ships with drag-and-drop card reordering across columns, a rich card editor modal (title, description, priority, labels with color picker, assignees, due dates, and file attachments), full-text search, priority-based filtering, column management (add, rename, clear, delete), skeleton loading, and integrated toast notifications — all zero-config with sensible defaults.
+
+<KanbanBoardDemo />
+
+## Installation
+
+<Tabs>
+<TabItem value="cli" label="CLI" default>
+    ```bash
+    ignix add component kanban-board-page
+    ```
+</TabItem>
+<TabItem value="manual" label="Manual" className="max-h-[500px] overflow-y-auto">
+    **Component dependencies:** `button`, `input`, `textarea`, `modals`, `date-picker`, `dropdown`, `file-upload`, `toast`
+
+```tsx
 import React, {
     createContext,
     useCallback,
@@ -27,21 +54,21 @@ import {
     X,
 } from "lucide-react";
 
-import { cn } from "@site/src/utils/cn";
-import { Button } from "../button";
-import { AnimatedInput as Input } from "../input";
-import Textarea from "../textarea";
-import { Modal } from "../modals";
-import { DatePicker } from "../date-picker";
+import { cn } from "../../../../../utils/cn";
+import { Button } from "../../../../components/button";
+import { AnimatedInput as Input } from "../../../../components/input";
+import Textarea from "../../../../components/textarea";
+import { Modal } from "../../../../components/modals";
+import { DatePicker } from "../../../../components/date-picker";
 import {
     Dropdown,
     DropdownItem,
     DropdownLabel,
     DropdownSeparator,
     DropdownCheckboxItem,
-} from "../dropdown";
-import { FileUpload } from "../file-upload";
-import { ToastProvider, useToast } from "../toast";
+} from "../../../../components/dropdown";
+import { FileUpload } from "../../../../components/file-upload";
+import { ToastProvider, useToast } from "../../../../components/toast";
 import { ChevronDown, Check } from "lucide-react";
 
 // TYPES
@@ -496,8 +523,8 @@ function useVisibleCardIds(column: Column): string[] {
     }, [state.cards, state.search, state.priorityFilter, column.cardIds]);
 }
 
-export function BoardProvider({ children, initialState }: { children: ReactNode; initialState?: BoardState }) {
-    const [state, dispatch] = useReducer(reducer, undefined, () => initialState ?? createSeed());
+export function BoardProvider({ children }: { children: ReactNode }) {
+    const [state, dispatch] = useReducer(reducer, undefined, createSeed);
     return (
         <BoardDispatchContext.Provider value={dispatch}>
             <BoardStateContext.Provider value={state}>
@@ -1405,7 +1432,7 @@ function AddColumnComposer() {
             </div>
             <Input
                 autoFocus
-                placeholder=""
+                placeholder="Column title"
                 value={title}
                 onChange={setTitle}
                 variant="clean"
@@ -1545,9 +1572,9 @@ function BoardInner() {
     );
 
     return (
-        <div className="flex h-screen flex-col bg-gradient-board min-w-max">
+        <div className="flex h-screen flex-col bg-gradient-board">
             {/* Top bar */}
-            <header className="flex items-center gap-3 px-5 lg:px-8 py-4 border-b border-border/60 bg-background/70 backdrop-blur-sm shrink-0">
+            <header className="flex flex-wrap items-center gap-3 px-5 lg:px-8 py-4 border-b border-border/60 bg-background/70 backdrop-blur-sm sticky top-0 z-20">
                 <div className="flex items-center gap-2.5 mr-2">
                     <div className="h-9 w-9 rounded-xl bg-gradient-brand grid place-items-center shadow-card">
                         <LayoutGrid
@@ -1556,9 +1583,9 @@ function BoardInner() {
                         />
                     </div>
                     <div className="min-w-0">
-                        <div className="font-display font-bold text-[17px] leading-none text-foreground">
+                        <h1 className="font-display font-bold text-[17px] leading-none text-foreground">
                             Kanban Board
-                        </div>
+                        </h1>
                         <p className="text-[11.5px] text-muted-foreground -mt-0.5">
                             {state.columns.length} columns · {totalCards} cards
                         </p>
@@ -1663,10 +1690,136 @@ function BoardInner() {
     );
 }
 
-export const KanbanBoard = ({ initialState }: { initialState?: BoardState } = {}) => (
+export const KanbanBoard = () => (
     <ToastProvider>
-        <BoardProvider initialState={initialState}>
+        <BoardProvider>
             <HydratedBoard />
         </BoardProvider>
     </ToastProvider>
 );
+    ```
+</TabItem>
+</Tabs>
+
+
+## Usage
+
+### Basic
+
+```tsx
+import { KanbanBoard } from "@ignix-ui/kanban-board-page";
+
+export default function MyProjectBoard() {
+  return <KanbanBoard />;
+}
+```
+
+### With Toast Notifications
+
+```tsx
+import { KanbanBoard } from "@ignix-ui/kanban-board-page";
+import { ToastProvider } from "@ignix-ui/toast";
+
+export default function App() {
+  return (
+    <ToastProvider maxToasts={3} defaultPosition="bottom-right">
+      <KanbanBoard />
+    </ToastProvider>
+  );
+}
+```
+
+### Skeleton Loading State
+
+```tsx
+import { BoardSkeleton } from "@ignix-ui/kanban-board-page";
+
+// Show during data loading — mirrors the exact board layout
+export default function LoadingState() {
+  return <BoardSkeleton />;
+}
+```
+
+### Using Individual Parts
+
+The component exports its internal types and utilities so you can compose your own board:
+
+```tsx
+import {
+  BoardProvider,
+  BoardSkeleton,
+  KanbanBoard,
+  createSeed,
+  newId,
+  formatDueDate,
+  initials,
+  avatarColor,
+  priorityMeta,
+  labelClasses,
+  labelDot,
+  LABEL_COLORS,
+} from "@ignix-ui/kanban-board-page";
+import type {
+  Priority,
+  LabelColor,
+  Label,
+  Assignee,
+  Card,
+  Column,
+  BoardState,
+} from "@ignix-ui/kanban-board-page";
+```
+
+## Props
+### `KanbanBoardProps`
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `initialState` | `BoardState` | `createSeed()` | Optional initial board state. Falls back to pre-seeded sample data. |
+
+### `Card`
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | Unique card identifier. |
+| `title` | `string` | Card title (required). |
+| `description` | `string?` | Optional card description. |
+| `priority` | `Priority` | Card priority level. |
+| `labels` | `Label[]` | Array of color-coded labels. |
+| `assignees` | `Assignee[]` | Array of assigned team members. |
+| `dueDate` | `string?` | ISO date string for the due date. |
+| `comments` | `number?` | Number of comments on the card. |
+| `attachments` | `number?` | Number of file attachments. |
+
+### `Column`
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | Unique column identifier. |
+| `title` | `string` | Column header title. |
+| `accent` | `LabelColor` | Accent color dot next to the title. |
+| `cardIds` | `string[]` | Ordered list of card IDs in this column. |
+
+### `BoardState`
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `columns` | `Column[]` | Ordered array of board columns. |
+| `cards` | `Record<string, Card>` | Map of card ID → card data. |
+| `search` | `string` | Current search query. |
+| `priorityFilter` | `Priority \| "all"` | Active priority filter. |
+
+### `Label`
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | Unique label identifier. |
+| `name` | `string` | Display name of the label. |
+| `color` | `LabelColor` | Color used for the label badge. |
+
+### `Assignee`
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | Unique assignee identifier. |
+| `name` | `string` | Full name (initials are derived automatically). |
