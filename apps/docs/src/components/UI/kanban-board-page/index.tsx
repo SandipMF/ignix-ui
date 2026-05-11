@@ -982,7 +982,6 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                                     "w-full justify-start font-normal",
                                     !dueDate && "text-muted-foreground"
                                 )}
-                                calendarClassName="bg-background border shadow-xl"
                             />
                         </div>
                     </div>

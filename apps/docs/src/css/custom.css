@@ -5,6 +5,10 @@
  */
 
 @import 'tailwindcss';
+
+/* Override TW v4 dark variant to use Docusaurus's data-theme attribute */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* Custom styles for the Docusaurus theme */
 
 :root {

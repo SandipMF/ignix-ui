@@ -496,8 +496,8 @@ function useVisibleCardIds(column: Column): string[] {
     }, [state.cards, state.search, state.priorityFilter, column.cardIds]);
 }
 
-export function BoardProvider({ children }: { children: ReactNode }) {
-    const [state, dispatch] = useReducer(reducer, undefined, createSeed);
+export function BoardProvider({ children, initialState }: { children: ReactNode; initialState?: BoardState }) {
+    const [state, dispatch] = useReducer(reducer, undefined, () => initialState ?? createSeed());
     return (
         <BoardDispatchContext.Provider value={dispatch}>
             <BoardStateContext.Provider value={state}>
@@ -982,7 +982,6 @@ function CardModal({ open, onOpenChange, mode, columnId, card }: CardModalProps)
                                     "w-full justify-start font-normal",
                                     !dueDate && "text-muted-foreground"
                                 )}
-                                calendarClassName="bg-background border shadow-xl"
                             />
                         </div>
                     </div>
@@ -1405,7 +1404,7 @@ function AddColumnComposer() {
             </div>
             <Input
                 autoFocus
-                placeholder="Column title"
+                placeholder=""
                 value={title}
                 onChange={setTitle}
                 variant="clean"
@@ -1545,9 +1544,9 @@ function BoardInner() {
     );
 
     return (
-        <div className="flex h-screen flex-col bg-gradient-board">
+        <div className="flex h-screen flex-col bg-gradient-board min-w-max">
             {/* Top bar */}
-            <header className="flex flex-wrap items-center gap-3 px-5 lg:px-8 py-4 border-b border-border/60 bg-background/70 backdrop-blur-sm sticky top-0 z-20">
+            <header className="flex items-center gap-3 px-5 lg:px-8 py-4 border-b border-border/60 bg-background/70 backdrop-blur-sm shrink-0">
                 <div className="flex items-center gap-2.5 mr-2">
                     <div className="h-9 w-9 rounded-xl bg-gradient-brand grid place-items-center shadow-card">
                         <LayoutGrid
@@ -1556,9 +1555,9 @@ function BoardInner() {
                         />
                     </div>
                     <div className="min-w-0">
-                        <h1 className="font-display font-bold text-[17px] leading-none text-foreground">
+                        <div className="font-display font-bold text-[17px] leading-none text-foreground">
                             Kanban Board
-                        </h1>
+                        </div>
                         <p className="text-[11.5px] text-muted-foreground -mt-0.5">
                             {state.columns.length} columns · {totalCards} cards
                         </p>
@@ -1663,9 +1662,9 @@ function BoardInner() {
     );
 }
 
-export const KanbanBoard = () => (
+export const KanbanBoard = ({ initialState }: { initialState?: BoardState } = {}) => (
     <ToastProvider>
-        <BoardProvider>
+        <BoardProvider initialState={initialState}>
             <HydratedBoard />
         </BoardProvider>
     </ToastProvider>

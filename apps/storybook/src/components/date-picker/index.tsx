@@ -8,6 +8,25 @@ import { cn } from '../../../utils/cn';
 import { Typography } from '../typography';
 import { Button } from '../button';
 
+// ========== HOOKS ==========
+function useDocusaurusTheme(): ThemeMode {
+    const [theme, setTheme] = useState<ThemeMode>('light');
+
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+
+        const root = document.documentElement;
+        const read = () => (root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light') as ThemeMode;
+        setTheme(read());
+
+        const observer = new MutationObserver(() => setTheme(read()));
+        observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+        return () => observer.disconnect();
+    }, []);
+
+    return theme;
+}
+
 // ========== TYPES ==========
 export type DateFormat =
     | 'MM/DD/YYYY'
@@ -1076,6 +1095,7 @@ const DatePicker = forwardRef<HTMLDivElement, DatePickerProps>(
             readOnly = false,
             required = false,
             minDate,
+            // themeMode handled below via auto-detection
             maxDate,
             disabledDates,
             highlightDates,
@@ -1086,7 +1106,7 @@ const DatePicker = forwardRef<HTMLDivElement, DatePickerProps>(
             className,
             inputClassName,
             calendarClassName,
-            themeMode = 'light',
+            themeMode: themeModeFromProps,
             colorScheme = 'blue',
             popupPosition = 'bottom-left',
             showIcon = true,
@@ -1105,6 +1125,10 @@ const DatePicker = forwardRef<HTMLDivElement, DatePickerProps>(
         },
         ref
     ) => {
+        // Auto-detect Docusaurus theme when themeMode prop is not provided
+        const autoDetectedTheme = useDocusaurusTheme();
+        const themeMode: ThemeMode = themeModeFromProps ?? autoDetectedTheme;
+
         const isDate = (value: unknown): value is Date => {
             return value instanceof Date;
         };
