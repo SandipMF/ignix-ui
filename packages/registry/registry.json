@@ -1794,7 +1794,7 @@
       "name": "kanban-board-page",
       "description": "A fully interactive Kanban board with drag-and-drop columns, card management (create, edit, delete), priority filtering, full-text search, labels with color picker, assignee chips, due-date tracking, file attachments, and toast notifications.",
       "dependencies": [
-        "lucide-react"
+        "@radix-ui/react-icons"
       ],
       "componentDependencies": [
         "button",

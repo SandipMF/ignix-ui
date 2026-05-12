@@ -13,19 +13,19 @@ import React, {
     type DragEvent,
 } from "react";
 import {
-    Calendar,
-    Eraser,
-    Filter,
-    LayoutGrid,
-    MessageSquare,
-    MoreHorizontal,
-    Paperclip,
-    Pencil,
-    Plus,
-    Search,
-    Trash2,
-    X,
-} from "lucide-react";
+    CalendarIcon as Calendar,
+    EraserIcon as Eraser,
+    MixerHorizontalIcon as Filter,
+    DashboardIcon as LayoutGrid,
+    ChatBubbleIcon as MessageSquare,
+    DotsHorizontalIcon as MoreHorizontal,
+    Link2Icon as Paperclip,
+    Pencil2Icon as Pencil,
+    PlusIcon as Plus,
+    MagnifyingGlassIcon as Search,
+    TrashIcon as Trash2,
+    Cross2Icon as X,
+} from "@radix-ui/react-icons";
 
 import { cn } from "@site/src/utils/cn";
 import { Button } from "../button";
@@ -42,7 +42,7 @@ import {
 } from "../dropdown";
 import { FileUpload } from "../file-upload";
 import { ToastProvider, useToast } from "../toast";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDownIcon as ChevronDown, CheckIcon as Check } from "@radix-ui/react-icons";
 
 // TYPES
 

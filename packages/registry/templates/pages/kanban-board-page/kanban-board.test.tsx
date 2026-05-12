@@ -692,7 +692,7 @@ describe("KanbanBoard - delete column", () => {
         await waitForHydration();
 
         const toDoColumn = screen.getByText("To Do").closest("div.bg-board-column")!;
-        const moreHorizButton = toDoColumn.querySelector(".lucide-ellipsis")?.closest("button") as HTMLElement;
+        const moreHorizButton = toDoColumn.querySelector("button.h-7.w-7") as HTMLElement;
         await user.click(moreHorizButton);
 
         const deleteColBtn = await screen.findByText("Delete column");
@@ -712,7 +712,7 @@ describe("KanbanBoard - clear column", () => {
         await waitForHydration();
 
         const toDoColumn = screen.getByText("To Do").closest("div.bg-board-column")!;
-        const moreHorizButton = toDoColumn.querySelector(".lucide-ellipsis")?.closest("button") as HTMLElement;
+        const moreHorizButton = toDoColumn.querySelector("button.h-7.w-7") as HTMLElement;
         await user.click(moreHorizButton);
 
         const clearBtn = await screen.findByText("Clear cards");
