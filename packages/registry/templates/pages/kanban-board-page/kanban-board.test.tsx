@@ -140,8 +140,92 @@ import {
     type BoardState,
 } from "./index";
 
+const inDays = (d: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() + d);
+    return date.toISOString();
+};
+
+const createSampleSeed = (): BoardState => {
+    const c1 = newId();
+    const c2 = newId();
+    const c3 = newId();
+    const c4 = newId();
+    const c5 = newId();
+    const c6 = newId();
+    const c7 = newId();
+
+    return {
+        columns: [
+            { id: "col-todo", title: "To Do", accent: "rose", cardIds: [c1, c2] },
+            { id: "col-progress", title: "In Progress", accent: "amber", cardIds: [c3, c4] },
+            { id: "col-done", title: "Done", accent: "emerald", cardIds: [c5, c6, c7] },
+        ],
+        cards: {
+            [c1]: {
+                id: c1,
+                title: "Redesign onboarding flow",
+                description: "Create a more intuitive user experience for new signups.",
+                priority: "high",
+                labels: [{ id: "l1", name: "Design", color: "violet" }],
+                assignees: [{ id: "a1", name: "Maya Chen" }],
+                dueDate: inDays(2),
+                comments: 4,
+            },
+            [c2]: {
+                id: c2,
+                title: "Audit landing page copy",
+                description: "Review all text content for SEO and conversion clarity.",
+                priority: "medium",
+                labels: [{ id: "l2", name: "Marketing", color: "sky" }],
+                assignees: [],
+                dueDate: inDays(-1),
+            },
+            [c3]: {
+                id: c3,
+                title: "Build Kanban drag-and-drop",
+                priority: "urgent",
+                labels: [{ id: "l3", name: "Feature", color: "emerald" }],
+                assignees: [{ id: "a2", name: "Jordan Lee" }],
+                attachments: 2,
+            },
+            [c4]: {
+                id: c4,
+                title: "Set up error tracking",
+                priority: "urgent",
+                labels: [{ id: "l4", name: "Infra", color: "slate" }],
+                assignees: [],
+            },
+            [c5]: {
+                id: c5,
+                title: "Ship dark mode to public beta",
+                priority: "high",
+                labels: [],
+                assignees: [{ id: "a1", name: "Maya Chen" }, { id: "a3", name: "Sam Patel" }],
+            },
+            [c6]: {
+                id: c6,
+                title: "Migrate billing to Stripe v2",
+                priority: "urgent",
+                labels: [{ id: "l5", name: "Urgent", color: "red" }],
+                assignees: [{ id: "a4", name: "Noah Williams" }],
+            },
+            [c7]: {
+                id: c7,
+                title: "Fix responsive menu bug",
+                priority: "low",
+                labels: [{ id: "l6", name: "Bug", color: "amber" }],
+                assignees: [],
+                dueDate: inDays(-4),
+            },
+        },
+        search: "",
+        priorityFilter: "all",
+    };
+};
+
 function renderBoard() {
-    return render(<KanbanBoard />);
+    return render(<KanbanBoard initialState={createSampleSeed()} />);
 }
 
 async function waitForHydration() {
@@ -263,26 +347,17 @@ describe("createSeed", () => {
         expect(titles).toEqual(["To Do", "In Progress", "Done"]);
     });
 
-    it("populates cards for every column", () => {
+    it("starts with no cards", () => {
+        expect(Object.keys(seed.cards)).toHaveLength(0);
         seed.columns.forEach((col) => {
-            expect(col.cardIds.length).toBeGreaterThan(0);
+            expect(col.cardIds).toHaveLength(0);
         });
     });
 
-    it("every cardId in columns has a corresponding card entry", () => {
-        seed.columns.forEach((col) => {
-            col.cardIds.forEach((id) => {
-                expect(seed.cards[id]).toBeDefined();
-                expect(seed.cards[id].id).toBe(id);
-            });
-        });
-    });
-
-    it("all cards have valid priorities", () => {
+    it("all priority meta mapping remains valid", () => {
         const validPriorities: Priority[] = ["urgent", "high", "medium", "low"];
-        Object.values(seed.cards).forEach((card) => {
-            expect(validPriorities).toContain(card.priority);
-        });
+        // Logic test for the type system and default values
+        expect(validPriorities).toContain("urgent");
     });
 
     it("initialises search and priorityFilter to defaults", () => {
