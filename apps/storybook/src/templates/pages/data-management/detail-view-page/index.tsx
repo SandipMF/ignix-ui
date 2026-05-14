@@ -37,19 +37,23 @@ import type { StatusStyle } from "../list-view-page/index";
 
 /* ─── Types ───────────────────────────────────────────────────────────────── */
 
+/** Visual theme wrapper applied to the page root (`dark` class vs light). */
 export type DetailViewTheme = "light" | "dark";
 
+/** Display name and avatar initials for the record owner row. */
 export interface DetailOwner {
     name: string;
     initials: string;
 }
 
+/** Lightweight row shown in the related-items list. */
 export interface DetailRelatedItem {
     id: string;
     title: string;
     description?: string;
 }
 
+/** Optional string overrides for every user-visible label on the detail page. */
 export interface DetailViewLabels {
     back?: string;
     previous?: string;
@@ -65,6 +69,7 @@ export interface DetailViewLabels {
     emptyRelated?: string;
 }
 
+/** Public props for the default composed `DetailViewPage` export. */
 export interface DetailViewPageProps {
     /** Page heading shown as primary title. */
     title: string;
@@ -100,6 +105,10 @@ export interface DetailViewPageProps {
     onRelatedItemClick?: (item: DetailRelatedItem) => void;
 }
 
+/**
+ * Default copy for navigation, actions, metadata labels, and empty-related messaging.
+ * Merged with consumer `labels` so partial overrides stay type-safe.
+ */
 const DEFAULT_LABELS: Required<DetailViewLabels> = {
     back: "Back",
     previous: "Previous",
@@ -117,12 +126,18 @@ const DEFAULT_LABELS: Required<DetailViewLabels> = {
 
 /* ─── Root layout ─────────────────────────────────────────────────────────── */
 
+/** Props for `DetailViewPage.Root` compound slot. */
 export interface DetailViewPageRootProps {
     theme?: DetailViewTheme;
     className?: string;
     children: ReactNode;
 }
 
+/**
+ * Wraps the page in theme-aware layout: optional `dark` class, full-height background, and centered max-width column.
+ * @param props - Root layout props.
+ * @returns The outer shell for all detail view content.
+ */
 function DetailViewPageRoot({
     theme = "light",
     className,
@@ -139,6 +154,7 @@ function DetailViewPageRoot({
 
 /* ─── Back + sibling navigation ───────────────────────────────────────────── */
 
+/** Props for the top navigation row (back + previous/next). */
 export interface DetailViewPageTopNavProps {
     labels: Required<DetailViewLabels>;
     onBack?: () => void;
@@ -148,6 +164,11 @@ export interface DetailViewPageTopNavProps {
     hasNext?: boolean;
 }
 
+/**
+ * Top bar: optional back control and optional previous/next sibling navigation with disabled states.
+ * @param props - Navigation labels and callbacks.
+ * @returns Toolbar row for back and sequential navigation.
+ */
 function DetailViewPageTopNav({
     labels,
     onBack,
@@ -156,10 +177,12 @@ function DetailViewPageTopNav({
     hasPrevious = true,
     hasNext = true,
 }: DetailViewPageTopNavProps) {
+    /** Invokes `onPrevious` when the control is enabled (`hasPrevious`). */
     const handlePrev = useCallback(() => {
         if (hasPrevious) onPrevious?.();
     }, [hasPrevious, onPrevious]);
 
+    /** Invokes `onNext` when the control is enabled (`hasNext`). */
     const handleNext = useCallback(() => {
         if (hasNext) onNext?.();
     }, [hasNext, onNext]);
@@ -214,6 +237,7 @@ function DetailViewPageTopNav({
 
 /* ─── Title + actions ─────────────────────────────────────────────────────── */
 
+/** Props for the title stack and optional action delegation to `DetailViewPageActions`. */
 export interface DetailViewPageHeaderProps {
     title: string;
     eyebrow?: string;
@@ -224,6 +248,11 @@ export interface DetailViewPageHeaderProps {
     onShare?: () => void;
 }
 
+/**
+ * Primary title block: eyebrow, heading, subtitle, and optional action cluster when any handler is provided.
+ * @param props - Title copy and action callbacks.
+ * @returns Header region above metadata and body.
+ */
 function DetailViewPageHeader({
     title,
     eyebrow,
@@ -267,6 +296,7 @@ function DetailViewPageHeader({
     );
 }
 
+/** Props for the edit / share / delete button cluster. */
 export interface DetailViewPageActionsProps {
     labels: Required<DetailViewLabels>;
     onEdit?: () => void;
@@ -275,6 +305,11 @@ export interface DetailViewPageActionsProps {
     className?: string;
 }
 
+/**
+ * Renders edit, share, and delete buttons for whichever callbacks exist; omits the group when none are passed.
+ * @param props - Label bundle and per-action handlers.
+ * @returns Horizontal button group.
+ */
 function DetailViewPageActions({
     labels,
     onEdit,
@@ -331,12 +366,16 @@ function DetailViewPageActions({
 
 /* ─── Metadata ────────────────────────────────────────────────────────────── */
 
+/**
+ * Fallback status pill styling when `statusStyles` has no entry for the current status label.
+ */
 const DEFAULT_STATUS_STYLE: StatusStyle = {
     className:
         "bg-muted text-muted-foreground ring-1 ring-inset ring-border",
     dotClassName: "bg-muted-foreground/60",
 };
 
+/** Props for the metadata definition list card. */
 export interface DetailViewPageMetadataProps {
     createdAt?: string;
     updatedAt?: string;
@@ -346,6 +385,12 @@ export interface DetailViewPageMetadataProps {
     labels: Required<DetailViewLabels>;
 }
 
+/**
+ * Responsive metadata card: created/updated dates, status chip, and owner row using a definition list for readability.
+ * Renders nothing when no metadata fields are present.
+ * @param props - Dates, status, owner, style map, and labels.
+ * @returns Card with `dl` grid or `null`.
+ */
 function DetailViewPageMetadata({
     createdAt,
     updatedAt,
@@ -354,8 +399,10 @@ function DetailViewPageMetadata({
     statusStyles,
     labels,
 }: DetailViewPageMetadataProps) {
+    /** Resolved badge classes for the current `status`, or `undefined` when status is absent. */
     const statusVisual = status ? statusStyles?.[status] ?? DEFAULT_STATUS_STYLE : undefined;
 
+    /** Whether any metadata row should be shown. */
     const showMeta =
         createdAt || updatedAt || status || owner;
 
@@ -438,9 +485,10 @@ function DetailViewPageMetadata({
                                 </dt>
                                 <dd className="mt-1 flex items-center gap-2">
                                     <Avatar
-                                        size="sm"
+                                        size="md"
                                         letters={owner.initials}
-                                        backgroundColor="bg-primary/5"
+                                        shape="circle"
+                                        bordered={true}
                                     />
                                     <span className="truncate text-sm text-foreground">
                                         {owner.name}
@@ -457,10 +505,16 @@ function DetailViewPageMetadata({
 
 /* ─── Body content ─────────────────────────────────────────────────────────── */
 
+/** Props for the primary body card. */
 export interface DetailViewPageContentProps {
     children: ReactNode;
 }
 
+/**
+ * Main prose region inside a card; wraps string children in `Typography` and passes through React nodes unchanged.
+ * @param props - Body content node.
+ * @returns Bordered content card.
+ */
 function DetailViewPageContent({ children }: DetailViewPageContentProps) {
     return (
         <Card
@@ -484,25 +538,34 @@ function DetailViewPageContent({ children }: DetailViewPageContentProps) {
 
 /* ─── Related list ───────────────────────────────────────────────────────── */
 
+/** Props for the related-items section. */
 export interface DetailViewRelatedListProps {
     items: DetailRelatedItem[];
     labels: Required<DetailViewLabels>;
     onItemClick?: (item: DetailRelatedItem) => void;
 }
 
+/** Internal props for a single related list row. */
 interface RelatedRowProps {
     item: DetailRelatedItem;
     onClick?: (item: DetailRelatedItem) => void;
 }
 
+/**
+ * Single related-item row with optional click/keyboard activation; memoized to limit re-renders when the parent list updates.
+ * @param props - Related item data and optional selection handler.
+ * @returns Animated list item.
+ */
 const DetailViewRelatedRow = memo(function DetailViewRelatedRow({
     item,
     onClick,
 }: RelatedRowProps) {
+    /** Forwards the row item to `onClick` when interactive. */
     const handleClick = useCallback(() => {
         onClick?.(item);
     }, [item, onClick]);
 
+    /** Activates the same path as click for Enter and Space when the row is interactive. */
     const handleKeyDown = useCallback(
         (e: KeyboardEvent<HTMLLIElement>) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -539,6 +602,11 @@ const DetailViewRelatedRow = memo(function DetailViewRelatedRow({
     );
 });
 
+/**
+ * Section heading plus a list of related records, or a dashed empty state when `items` is empty.
+ * @param props - Items, copy, and optional row click handler.
+ * @returns Related items region.
+ */
 function DetailViewPageRelatedList({
     items,
     labels,
@@ -577,6 +645,7 @@ function DetailViewPageRelatedList({
 
 /* ─── Bottom sibling nav (duplicate for long pages / mobile) ─────────────── */
 
+/** Props for the footer previous/next strip. */
 export interface DetailViewPageBottomNavProps {
     labels: Required<DetailViewLabels>;
     onPrevious?: () => void;
@@ -585,6 +654,11 @@ export interface DetailViewPageBottomNavProps {
     hasNext?: boolean;
 }
 
+/**
+ * Secondary previous/next strip at the bottom of the page for long content or small viewports; hidden when both callbacks are omitted.
+ * @param props - Labels, handlers, and boundary flags.
+ * @returns Footer navigation or `null`.
+ */
 function DetailViewPageBottomNav({
     labels,
     onPrevious,
@@ -628,6 +702,11 @@ function DetailViewPageBottomNav({
 
 /* ─── Composed page ───────────────────────────────────────────────────────── */
 
+/**
+ * Default composed detail page: wires root layout, top/bottom nav, header, metadata, body, and related list from `DetailViewPageProps`.
+ * @param props - Full detail view configuration.
+ * @returns Complete detail view tree.
+ */
 function DetailViewPageImpl(props: DetailViewPageProps) {
     const {
         title,
@@ -654,8 +733,10 @@ function DetailViewPageImpl(props: DetailViewPageProps) {
         onRelatedItemClick,
     } = props;
 
+    /** Effective labels after merging defaults with partial consumer overrides. */
     const labels = { ...DEFAULT_LABELS, ...labelsProp };
 
+    /** Stable bridge to `onRelatedItemClick` for memoized related rows. */
     const handleRelatedItem = useCallback(
         (item: DetailRelatedItem) => {
             onRelatedItemClick?.(item);
@@ -712,6 +793,9 @@ function DetailViewPageImpl(props: DetailViewPageProps) {
     );
 }
 
+/**
+ * Typing for the compound export: default render function plus static subcomponents.
+ */
 type DetailViewPageCompound = typeof DetailViewPageImpl & {
     Root: typeof DetailViewPageRoot;
     TopNav: typeof DetailViewPageTopNav;
@@ -726,6 +810,7 @@ type DetailViewPageCompound = typeof DetailViewPageImpl & {
 /**
  * Full-page detail layout with compound subcomponents on the same namespace
  * (`DetailViewPage.Root`, `DetailViewPage.Header`, …) for custom compositions.
+ * @remarks Static properties (`Root`, `TopNav`, …) mirror the default layout pieces for bespoke ordering.
  */
 export const DetailViewPage: DetailViewPageCompound = Object.assign(
     DetailViewPageImpl,

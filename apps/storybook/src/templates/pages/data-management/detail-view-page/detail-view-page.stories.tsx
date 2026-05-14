@@ -14,7 +14,10 @@ import { DetailViewPage } from "./index";
 import type { DetailRelatedItem, DetailViewLabels } from "./index";
 import type { StatusStyle } from "../list-view-page/index";
 
-/** Shared copy used by compound stories where full label bundles are required. */
+/**
+ * Shared copy used by compound stories and as the base for partial overrides in the interactive demo.
+ * Satisfies `Required<DetailViewLabels>` so compound slots receive every key.
+ */
 const STORY_LABELS: Required<DetailViewLabels> = {
     back: "Back",
     previous: "Previous",
@@ -32,6 +35,7 @@ const STORY_LABELS: Required<DetailViewLabels> = {
 
 /* ─── Sample records (aligned with ListView sample data) ─────────────────── */
 
+/** Status pill classes reused from the ListView story palette for visual consistency. */
 const STATUS_STYLES: Record<string, StatusStyle> = {
     Published: {
         className:
@@ -54,6 +58,7 @@ const STATUS_STYLES: Record<string, StatusStyle> = {
     },
 };
 
+/** Shape of a mock library record used to drive Default / Dark / compound stories. */
 interface MockRecord {
     id: string;
     title: string;
@@ -67,10 +72,11 @@ interface MockRecord {
     relatedIds: string[];
 }
 
+/** In-memory dataset simulating a small slice of the components catalog. */
 const RECORDS: MockRecord[] = [
     {
         id: "1",
-        title: "Button Component v2.400",
+        title: "Button Component v2.4",
         eyebrow: "Library · Components",
         subtitle: "High-traffic surface: keep API stable while shipping quality-of-life updates.",
         content: `Summary
@@ -132,7 +138,13 @@ Rollout is staged: foundations first, product shells next, marketing pages last.
     },
 ];
 
+/**
+ * Maps a record's `relatedIds` to `DetailRelatedItem` rows for the related list.
+ * @param record - Current mock record.
+ * @returns Related items resolved from `RECORDS`.
+ */
 function relatedItemsFor(record: MockRecord): DetailRelatedItem[] {
+    /** Fast lookup from record id to full mock row. */
     const map = new Map(RECORDS.map((r) => [r.id, r]));
     return record.relatedIds
         .map((id) => map.get(id))
@@ -144,46 +156,64 @@ function relatedItemsFor(record: MockRecord): DetailRelatedItem[] {
         }));
 }
 
+/** Props surface of `DetailViewPage` for typing the interactive demo wrapper. */
 type DetailViewPageProps = ComponentProps<typeof DetailViewPage>;
 
+/**
+ * Stateful Storybook harness: cycles mock records via previous/next, jumps on related clicks, and logs action handlers.
+ * @param props - Currently only `theme` is forwarded from Story args.
+ * @returns Wired `DetailViewPage` instance.
+ */
 function DetailViewInteractiveDemo(
     props: Pick<DetailViewPageProps, "theme">
 ) {
     const { theme = "light" } = props;
+    /** Index of the active mock record in `RECORDS`. */
     const [index, setIndex] = useState(0);
 
+    /** Active mock record derived from `index`. */
     const record = RECORDS[index];
 
+    /** Related rows for the active record, recomputed when `record` changes. */
     const relatedItems = useMemo(() => relatedItemsFor(record), [record]);
 
+    /** True when a previous sibling exists in `RECORDS`. */
     const hasPrevious = index > 0;
+    /** True when a next sibling exists in `RECORDS`. */
     const hasNext = index < RECORDS.length - 1;
 
+    /** Simulates routing back to the list view. */
     const goBack = useCallback(() => {
         console.info("navigate back to list");
     }, []);
 
+    /** Decrements the active record index, clamped at zero. */
     const goPrev = useCallback(() => {
         setIndex((i) => Math.max(0, i - 1));
     }, []);
 
+    /** Increments the active record index, clamped at the last entry. */
     const goNext = useCallback(() => {
         setIndex((i) => Math.min(RECORDS.length - 1, i + 1));
     }, []);
 
+    /** Jumps the demo to the related record when a related row is activated. */
     const onRelated = useCallback((item: DetailRelatedItem) => {
         const nextIndex = RECORDS.findIndex((r) => r.id === item.id);
         if (nextIndex >= 0) setIndex(nextIndex);
     }, []);
 
+    /** Logs edit intent for the active record. */
     const onEdit = useCallback(() => {
         console.info("edit", record.id);
     }, [record.id]);
 
+    /** Logs delete intent for the active record. */
     const onDelete = useCallback(() => {
         console.info("delete", record.id);
     }, [record.id]);
 
+    /** Logs share intent for the active record. */
     const onShare = useCallback(() => {
         console.info("share", record.id);
     }, [record.id]);
@@ -218,6 +248,7 @@ function DetailViewInteractiveDemo(
     );
 }
 
+/** Storybook metadata for the DetailViewPage template route. */
 const meta: Meta<typeof DetailViewPage> = {
     title: "Templates/Pages/DataManagement/DetailViewPage",
     component: DetailViewPage,
@@ -241,13 +272,15 @@ const meta: Meta<typeof DetailViewPage> = {
 };
 
 export default meta;
+/** Story object type for this file's exports. */
 type Story = StoryObj<typeof DetailViewPage>;
 
 export const Default: Story = {
-    // name: "Default",
+    name: "Default",
     args: {
         theme: "light",
     },
+    /** Renders the interactive demo with theme from controls. */
     render: function Render(args) {
         return <DetailViewInteractiveDemo theme={args.theme} />;
     },
@@ -258,12 +291,15 @@ export const DarkTheme: Story = {
     args: {
         theme: "dark",
     },
+    /** Reuses Default story render with dark theme args. */
     render: Default.render,
 };
 
 export const EmptyRelated: Story = {
     name: "No related items",
+    /** Single record with an intentionally empty related list. */
     render: function EmptyRelatedRender() {
+        /** First catalog entry reused for static empty-related layout. */
         const record = RECORDS[0];
         return (
             <DetailViewPage
@@ -286,8 +322,11 @@ export const EmptyRelated: Story = {
 
 export const CompoundComposition: Story = {
     name: "Compound composition",
+    /** Demonstrates assembling the page from `DetailViewPage.*` static slots. */
     render: function CompoundStory() {
+        /** Fixed first record for deterministic compound layout. */
         const record = RECORDS[0];
+        /** Related rows for the first mock record only. */
         const relatedItems = useMemo(() => relatedItemsFor(record), []);
 
         return (
