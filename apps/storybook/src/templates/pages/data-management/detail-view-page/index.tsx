@@ -1,7 +1,8 @@
 /**
  * @fileoverview Detail view page template for data-management workflows: a single record with
  * heading, metadata (dates, status, owner), rich body content, related items, primary actions,
- * back navigation, and previous/next sibling navigation. Visual language aligns with `ListView`
+ * back navigation, and previous/next sibling navigation. When `loading` is set, shows skeleton
+ * placeholders and disables sibling navigation. Visual language aligns with `ListView`
  * (spacing, cards, badges, motion).
  */
 
@@ -20,6 +21,7 @@ import {
     ClockIcon,
     Pencil1Icon,
     PersonIcon,
+    ReloadIcon,
     Share2Icon,
     TrashIcon,
 } from "@radix-ui/react-icons";
@@ -67,6 +69,8 @@ export interface DetailViewLabels {
     owner?: string;
     status?: string;
     emptyRelated?: string;
+    /** Shown beside the spinner while `loading` is true. */
+    loadingHint?: string;
 }
 
 /** Public props for the default composed `DetailViewPage` export. */
@@ -103,6 +107,8 @@ export interface DetailViewPageProps {
     /** Disables next control when false. */
     hasNext?: boolean;
     onRelatedItemClick?: (item: DetailRelatedItem) => void;
+    /** When true, shows skeleton placeholders and disables prev/next (and footer nav); back remains usable if `onBack` is set. */
+    loading?: boolean;
 }
 
 /**
@@ -122,6 +128,7 @@ const DEFAULT_LABELS: Required<DetailViewLabels> = {
     owner: "Owner",
     status: "Status",
     emptyRelated: "No related items yet.",
+    loadingHint: "Loading item…",
 };
 
 /* ─── Root layout ─────────────────────────────────────────────────────────── */
@@ -162,6 +169,8 @@ export interface DetailViewPageTopNavProps {
     onNext?: () => void;
     hasPrevious?: boolean;
     hasNext?: boolean;
+    /** When true, sibling navigation controls are disabled (data still resolving). */
+    loading?: boolean;
 }
 
 /**
@@ -176,16 +185,19 @@ function DetailViewPageTopNav({
     onNext,
     hasPrevious = true,
     hasNext = true,
+    loading = false,
 }: DetailViewPageTopNavProps) {
-    /** Invokes `onPrevious` when the control is enabled (`hasPrevious`). */
+    /** Invokes `onPrevious` when the control is enabled (`hasPrevious`) and not loading. */
     const handlePrev = useCallback(() => {
-        if (hasPrevious) onPrevious?.();
-    }, [hasPrevious, onPrevious]);
+        if (loading || !hasPrevious) return;
+        onPrevious?.();
+    }, [loading, hasPrevious, onPrevious]);
 
-    /** Invokes `onNext` when the control is enabled (`hasNext`). */
+    /** Invokes `onNext` when the control is enabled (`hasNext`) and not loading. */
     const handleNext = useCallback(() => {
-        if (hasNext) onNext?.();
-    }, [hasNext, onNext]);
+        if (loading || !hasNext) return;
+        onNext?.();
+    }, [loading, hasNext, onNext]);
 
     return (
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -210,7 +222,7 @@ function DetailViewPageTopNav({
                         variant="outline"
                         size="sm"
                         className="h-9 gap-1 rounded-lg"
-                        disabled={!onPrevious || !hasPrevious}
+                        disabled={loading || !onPrevious || !hasPrevious}
                         onClick={handlePrev}
                         aria-label={labels.previous}
                     >
@@ -222,7 +234,7 @@ function DetailViewPageTopNav({
                         variant="outline"
                         size="sm"
                         className="h-9 gap-1 rounded-lg"
-                        disabled={!onNext || !hasNext}
+                        disabled={loading || !onNext || !hasNext}
                         onClick={handleNext}
                         aria-label={labels.next}
                     >
@@ -652,6 +664,8 @@ export interface DetailViewPageBottomNavProps {
     onNext?: () => void;
     hasPrevious?: boolean;
     hasNext?: boolean;
+    /** When true, footer sibling buttons stay visible but are non-interactive. */
+    loading?: boolean;
 }
 
 /**
@@ -665,6 +679,7 @@ function DetailViewPageBottomNav({
     onNext,
     hasPrevious = true,
     hasNext = true,
+    loading = false,
 }: DetailViewPageBottomNavProps) {
     if (!onPrevious && !onNext) return null;
 
@@ -676,8 +691,8 @@ function DetailViewPageBottomNav({
                     variant="ghost"
                     size="sm"
                     className="h-9 gap-1 rounded-lg"
-                    disabled={!onPrevious || !hasPrevious}
-                    onClick={() => hasPrevious && onPrevious?.()}
+                    disabled={loading || !onPrevious || !hasPrevious}
+                    onClick={() => !loading && hasPrevious && onPrevious?.()}
                     aria-label={labels.previous}
                 >
                     <ChevronLeftIcon className="h-4 w-4" aria-hidden />
@@ -688,13 +703,78 @@ function DetailViewPageBottomNav({
                     variant="ghost"
                     size="sm"
                     className="h-9 gap-1 rounded-lg"
-                    disabled={!onNext || !hasNext}
-                    onClick={() => hasNext && onNext?.()}
+                    disabled={loading || !onNext || !hasNext}
+                    onClick={() => !loading && hasNext && onNext?.()}
                     aria-label={labels.next}
                 >
                     {labels.next}
                     <ChevronRightIcon className="h-4 w-4" aria-hidden />
                 </Button>
+            </div>
+        </div>
+    );
+}
+
+/* ─── Loading skeleton ────────────────────────────────────────────────────── */
+
+/**
+ * Pulsing placeholders that mirror the detail layout (title, metadata grid, body, related list)
+ * while record data is fetched.
+ * @returns Accessible busy region for use when `loading` is true.
+ */
+function DetailViewPageSkeleton() {
+    return (
+        <div
+            className="animate-pulse space-y-6"
+            aria-busy="true"
+            aria-live="polite"
+        >
+            <div className="space-y-3">
+                <div className="h-3 w-28 rounded bg-muted" />
+                <div className="h-9 max-w-xl rounded-lg bg-muted" />
+                <div className="h-4 max-w-2xl rounded bg-muted" />
+                <div className="h-4 max-w-xl rounded bg-muted" />
+            </div>
+
+            <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
+                <div className="mb-3 h-4 w-20 rounded bg-muted" />
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="space-y-2">
+                            <div className="h-3 w-16 rounded bg-muted" />
+                            <div className="h-4 w-24 rounded bg-muted" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-sm">
+                <div className="space-y-3">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <div
+                            key={i}
+                            className={cn(
+                                "h-4 rounded bg-muted",
+                                i % 3 === 0 ? "w-11/12" : "w-full"
+                            )}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            <div>
+                <div className="mb-3 h-6 w-40 rounded-md bg-muted" />
+                <ul className="flex flex-col gap-3 p-0">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                        <li
+                            key={i}
+                            className="rounded-xl border border-border/70 bg-card/80 p-4 shadow-sm"
+                        >
+                            <div className="h-4 max-w-[12rem] rounded bg-muted" />
+                            <div className="mt-2 h-3 w-4/5 rounded bg-muted" />
+                        </li>
+                    ))}
+                </ul>
             </div>
         </div>
     );
@@ -731,6 +811,7 @@ function DetailViewPageImpl(props: DetailViewPageProps) {
         hasPrevious = true,
         hasNext = true,
         onRelatedItemClick,
+        loading = false,
     } = props;
 
     /** Effective labels after merging defaults with partial consumer overrides. */
@@ -753,34 +834,50 @@ function DetailViewPageImpl(props: DetailViewPageProps) {
                 onNext={onNext}
                 hasPrevious={hasPrevious}
                 hasNext={hasNext}
+                loading={loading}
             />
 
-            <DetailViewPageHeader
-                title={title}
-                eyebrow={eyebrow}
-                subtitle={subtitle}
-                labels={labels}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onShare={onShare}
-            />
+            {loading ? (
+                <>
+                    <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
+                        <ReloadIcon
+                            className="h-4 w-4 shrink-0 animate-spin"
+                            aria-hidden
+                        />
+                        <span>{labels.loadingHint}</span>
+                    </div>
+                    <DetailViewPageSkeleton />
+                </>
+            ) : (
+                <>
+                    <DetailViewPageHeader
+                        title={title}
+                        eyebrow={eyebrow}
+                        subtitle={subtitle}
+                        labels={labels}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onShare={onShare}
+                    />
 
-            <DetailViewPageMetadata
-                createdAt={createdAt}
-                updatedAt={updatedAt}
-                status={status}
-                owner={owner}
-                statusStyles={statusStyles}
-                labels={labels}
-            />
+                    <DetailViewPageMetadata
+                        createdAt={createdAt}
+                        updatedAt={updatedAt}
+                        status={status}
+                        owner={owner}
+                        statusStyles={statusStyles}
+                        labels={labels}
+                    />
 
-            <DetailViewPageContent>{content}</DetailViewPageContent>
+                    <DetailViewPageContent>{content}</DetailViewPageContent>
 
-            <DetailViewPageRelatedList
-                items={relatedItems}
-                labels={labels}
-                onItemClick={handleRelatedItem}
-            />
+                    <DetailViewPageRelatedList
+                        items={relatedItems}
+                        labels={labels}
+                        onItemClick={handleRelatedItem}
+                    />
+                </>
+            )}
 
             <DetailViewPageBottomNav
                 labels={labels}
@@ -788,6 +885,7 @@ function DetailViewPageImpl(props: DetailViewPageProps) {
                 onNext={onNext}
                 hasPrevious={hasPrevious}
                 hasNext={hasNext}
+                loading={loading}
             />
         </DetailViewPageRoot>
     );

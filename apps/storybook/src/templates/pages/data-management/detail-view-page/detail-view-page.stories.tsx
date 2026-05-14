@@ -31,6 +31,7 @@ const STORY_LABELS: Required<DetailViewLabels> = {
     owner: "Owner",
     status: "Status",
     emptyRelated: "No related items yet.",
+    loadingHint: "Loading item…",
 };
 
 /* ─── Sample records (aligned with ListView sample data) ─────────────────── */
@@ -268,6 +269,10 @@ const meta: Meta<typeof DetailViewPage> = {
             options: ["light", "dark"],
             description: "Theme wrapper via `dark` class.",
         },
+        loading: {
+            control: "boolean",
+            description: "Shows skeleton UI and disables sibling navigation until data resolves.",
+        },
     },
 };
 
@@ -276,7 +281,6 @@ export default meta;
 type Story = StoryObj<typeof DetailViewPage>;
 
 export const Default: Story = {
-    name: "Default",
     args: {
         theme: "light",
     },
@@ -290,9 +294,41 @@ export const DarkTheme: Story = {
     name: "Dark theme",
     args: {
         theme: "dark",
+        loading: true
     },
     /** Reuses Default story render with dark theme args. */
     render: Default.render,
+};
+
+/**
+ * Skeleton layout while the record is fetched: spinner + hint, pulsed placeholders, disabled prev/next.
+ * @returns Static `DetailViewPage` in loading mode with placeholder props.
+ */
+export const Loading: Story = {
+    name: "Loading state",
+    args: {
+        theme: "light",
+        loading: true,
+    },
+    render: function LoadingRender(args) {
+        return (
+            <DetailViewPage
+                theme={args.theme}
+                loading={Boolean(args.loading)}
+                title=""
+                content={null}
+                onBack={() => undefined}
+                onPrevious={() => undefined}
+                onNext={() => undefined}
+                hasPrevious
+                hasNext
+                labels={{
+                    ...STORY_LABELS,
+                    loadingHint: "Fetching item details…",
+                }}
+            />
+        );
+    },
 };
 
 export const EmptyRelated: Story = {
