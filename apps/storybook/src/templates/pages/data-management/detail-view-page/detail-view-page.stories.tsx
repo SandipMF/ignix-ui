@@ -244,7 +244,7 @@ export default meta;
 type Story = StoryObj<typeof DetailViewPage>;
 
 export const Default: Story = {
-    name: "Default",
+    // name: "Default",
     args: {
         theme: "light",
     },
