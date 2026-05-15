@@ -1789,6 +1789,26 @@
           "type": "template"
         }
       }
+    },
+    "detail-view-page": {
+      "name": "detail-view-page",
+      "description": "A full-page detail layout for data-management workflows: heading, metadata (dates, status, owner), rich body content, related items list, action buttons (edit, delete, share), back navigation, and previous/next sibling navigation. Supports a loading skeleton state and exposes compound sub-components for custom compositions.",
+      "dependencies": [
+        "@radix-ui/react-icons",
+        "framer-motion"
+      ],
+      "componentDependencies": [
+        "typography",
+        "button",
+        "avatar",
+        "card"
+      ],
+      "files": {
+        "main": {
+          "path": "templates/pages/detail-view-page/index.tsx",
+          "type": "template"
+        }
+      }
     }
   }
 }
